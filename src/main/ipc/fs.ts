@@ -1,5 +1,6 @@
 import { dialog } from 'electron'
 import { promises as fs } from 'fs'
+import path from 'path'
 import type { FileEntry } from '../../renderer/src/types'
 
 export async function readDirHandler(dirPath: string): Promise<FileEntry[]> {
@@ -8,7 +9,7 @@ export async function readDirHandler(dirPath: string): Promise<FileEntry[]> {
     .filter(e => !e.name.startsWith('.'))
     .map(e => ({
       name: e.name,
-      path: `${dirPath}/${e.name}`.replace(/\\/g, '/'),
+      path: path.join(dirPath, e.name).replace(/\\/g, '/'),
       type: (e.isDirectory() ? 'directory' : 'file') as 'file' | 'directory'
     }))
     .sort((a, b) => {

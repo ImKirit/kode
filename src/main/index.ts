@@ -2,6 +2,8 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { registerIpcHandlers } from './ipc'
 
+let mainWindow: BrowserWindow | null = null
+
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1400,
@@ -17,12 +19,13 @@ function createWindow(): BrowserWindow {
     }
   })
 
-  ipcMain.on('window:setTitle', (_event, title: string) => {
-    win.setTitle(title)
-  })
+  mainWindow = win
 
-  if (process.env.NODE_ENV === 'development') {
-    win.loadURL(process.env.ELECTRON_RENDERER_URL!)
+  win.on('closed', () => { mainWindow = null })
+
+  const devUrl = process.env['ELECTRON_RENDERER_URL']
+  if (devUrl) {
+    win.loadURL(devUrl)
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
@@ -32,7 +35,14 @@ function createWindow(): BrowserWindow {
 
 app.whenReady().then(() => {
   registerIpcHandlers()
+
+  // Register once — uses mainWindow reference, not captured win
+  ipcMain.on('window:setTitle', (_event, title: string) => {
+    mainWindow?.setTitle(title)
+  })
+
   createWindow()
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
