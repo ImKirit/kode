@@ -1,0 +1,58 @@
+{
+  "name": "kode",
+  "version": "0.1.0",
+  "description": "AI-native code editor",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.4.0",
+    "@electron-forge/maker-squirrel": "^7.4.0",
+    "@electron-forge/maker-zip": "^7.4.0",
+    "@electron-forge/maker-deb": "^7.4.0",
+    "@electron-forge/maker-rpm": "^7.4.0",
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.5.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.19",
+    "electron": "^35.0.0",
+    "electron-vite": "^2.3.0",
+    "jsdom": "^24.0.0",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.4.5",
+    "vite": "^5.3.1",
+    "vitest": "^2.0.0"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.6.0",
+    "lucide-react": "^0.400.0",
+    "monaco-editor": "^0.50.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "forge": {
+    "packagerConfig": {
+      "icon": "resources/icon",
+      "name": "Kode",
+      "executableName": "kode"
+    },
+    "makers": [
+      { "name": "@electron-forge/maker-squirrel", "config": {} },
+      { "name": "@electron-forge/maker-zip", "platforms": ["darwin"] },
+      { "name": "@electron-forge/maker-deb", "config": {} },
+      { "name": "@electron-forge/maker-rpm", "config": {} }
+    ]
+  }
+}
