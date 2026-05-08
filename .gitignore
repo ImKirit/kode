@@ -1,0 +1,15 @@
+node_modules/
+dist/
+out/
+.env
+.env.*
+*.log
+
+# AI tooling — not for version control
+.claude/
+.superpowers/
+CLAUDE.md
+
+# OS
+.DS_Store
+Thumbs.db
