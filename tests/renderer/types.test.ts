@@ -1,4 +1,4 @@
-import type { FileEntry, OpenFile } from '@renderer/types'
+import type { FileEntry, OpenFile, ProjectState } from '@renderer/types'
 import { languageFromPath } from '@renderer/types'
 
 test('FileEntry type has required fields', () => {
@@ -28,4 +28,29 @@ test('languageFromPath detects TypeScript', () => {
 
 test('languageFromPath falls back to plaintext', () => {
   expect(languageFromPath('Makefile')).toBe('plaintext')
+})
+
+test('ProjectState has rootPath and name', () => {
+  const s: ProjectState = { rootPath: '/home/user/project', name: 'project' }
+  expect(s.rootPath).toBe('/home/user/project')
+  expect(s.name).toBe('project')
+})
+
+test('ProjectState rootPath can be null', () => {
+  const s: ProjectState = { rootPath: null, name: '' }
+  expect(s.rootPath).toBeNull()
+})
+
+test('languageFromPath detects various languages', () => {
+  expect(languageFromPath('app.js')).toBe('javascript')
+  expect(languageFromPath('config.json')).toBe('json')
+  expect(languageFromPath('main.py')).toBe('python')
+  expect(languageFromPath('script.sh')).toBe('shell')
+  expect(languageFromPath('deploy.yml')).toBe('yaml')
+  expect(languageFromPath('style.css')).toBe('css')
+})
+
+test('languageFromPath handles no-extension files', () => {
+  expect(languageFromPath('Makefile')).toBe('plaintext')
+  expect(languageFromPath('Dockerfile')).toBe('plaintext')
 })
