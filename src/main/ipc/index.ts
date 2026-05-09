@@ -5,6 +5,7 @@ import {
   writeFileHandler,
   openFolderHandler
 } from './fs'
+import { registerTerminalHandlers } from './terminal'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('fs:readDir', (_event, dirPath: string) => readDirHandler(dirPath))
@@ -13,4 +14,5 @@ export function registerIpcHandlers(): void {
     writeFileHandler(filePath, content)
   )
   ipcMain.handle('fs:openFolder', () => openFolderHandler())
+  registerTerminalHandlers()
 }
