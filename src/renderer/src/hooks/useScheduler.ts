@@ -33,10 +33,12 @@ export function useScheduler(): UseSchedulerResult {
   const pendingMessagesRef = useRef<Array<{ role: 'user' | 'assistant'; content: string }> | null>(null)
   // Track previous isStreaming value for auto-drain detection
   const prevIsStreamingRef = useRef(false)
+  const queueRef = useRef<string[]>([])
 
   useEffect(() => { messagesRef.current = messages }, [messages])
   useEffect(() => { isStreamingRef.current = isStreaming }, [isStreaming])
   useEffect(() => { retryCountdownRef.current = retryCountdown }, [retryCountdown])
+  useEffect(() => { queueRef.current = queue }, [queue])
 
   // AI event subscriptions (once on mount)
   useEffect(() => {
@@ -106,20 +108,20 @@ export function useScheduler(): UseSchedulerResult {
     const wasStreaming = prevIsStreamingRef.current
     prevIsStreamingRef.current = isStreaming
     if (!wasStreaming || isStreaming || retryCountdownRef.current !== null) return
+    if (queueRef.current.length === 0) return
 
-    setQueue(prev => {
-      if (prev.length === 0) return prev
-      const [next, ...rest] = prev
-      const userMsg: ChatMessage = { role: 'user', content: next }
-      const newMessages = [...messagesRef.current, userMsg]
-      setMessages(m => [...m, userMsg, { role: 'assistant', content: '' }])
-      pendingMessagesRef.current = newMessages
-      isStreamingRef.current = true
-      setIsStreaming(true)
-      setError(null)
-      window.kode.ai.sendMessage(newMessages)
-      return rest
-    })
+    const [next, ...rest] = queueRef.current
+    const userMsg: ChatMessage = { role: 'user', content: next }
+    const assistantMsg: ChatMessage = { role: 'assistant', content: '' }
+    const newMessages = [...messagesRef.current, userMsg]
+    queueRef.current = rest
+    setQueue(rest)
+    setMessages(m => [...m, userMsg, assistantMsg])
+    pendingMessagesRef.current = newMessages
+    isStreamingRef.current = true
+    setIsStreaming(true)
+    setError(null)
+    window.kode.ai.sendMessage(newMessages)
   }, [isStreaming])
 
   const sendOrEnqueue = useCallback((text: string) => {
@@ -149,6 +151,8 @@ export function useScheduler(): UseSchedulerResult {
   }, [])
 
   const clearMessages = useCallback(() => {
+    pendingMessagesRef.current = null
+    setRetryCountdown(null)
     setMessages([])
     setError(null)
   }, [])
