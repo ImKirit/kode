@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { BottomPanel } from '@renderer/components/layout/BottomPanel'
 
@@ -43,5 +43,11 @@ describe('BottomPanel', () => {
     render(<BottomPanel rootPath="/project" />)
     expect(screen.getByRole('button', { name: /terminal/i })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: /changes/i })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('passes null rootPath to ChangesView', () => {
+    render(<BottomPanel rootPath={null} />)
+    fireEvent.click(screen.getByRole('button', { name: /changes/i }))
+    expect(screen.getByTestId('changes-view')).not.toHaveAttribute('data-rootpath')
   })
 })

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, CSSProperties } from 'react'
 import { TerminalPanel } from '../terminal/TerminalPanel'
 import { ChangesView } from '../git/ChangesView'
 
@@ -11,7 +11,7 @@ interface BottomPanelProps {
 export function BottomPanel({ rootPath }: BottomPanelProps) {
   const [activeTab, setActiveTab] = useState<BottomTab>('terminal')
 
-  const tabStyle = (tab: BottomTab): React.CSSProperties => ({
+  const tabStyle = (tab: BottomTab): CSSProperties => ({
     background: 'none',
     border: 'none',
     borderBottom: activeTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
