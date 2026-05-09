@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import Editor, { type Monaco } from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
 
@@ -5,12 +6,23 @@ interface MonacoEditorProps {
   content: string
   language: string
   filePath: string
+  isActive: boolean
   onChange(value: string): void
   onSave(): void
 }
 
-export function MonacoEditor({ content, language, onChange, onSave }: MonacoEditorProps) {
+export function MonacoEditor({ content, language, onChange, onSave, isActive }: MonacoEditorProps) {
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+
+  useEffect(() => {
+    if (isActive && editorRef.current) {
+      // Trigger layout recalculation after becoming visible
+      editorRef.current.layout()
+    }
+  }, [isActive])
+
   function handleMount(ed: editor.IStandaloneCodeEditor, monaco: Monaco) {
+    editorRef.current = ed
     ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => onSave())
   }
 

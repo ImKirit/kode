@@ -14,8 +14,6 @@ interface EditorAreaProps {
 export function EditorArea({
   openFiles, activeFilePath, onActivate, onClose, onContentChange, onSave
 }: EditorAreaProps) {
-  const activeFile = openFiles.find(f => f.path === activeFilePath)
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Tab bar */}
@@ -42,17 +40,28 @@ export function EditorArea({
       </div>
 
       {/* Monaco area */}
-      <div style={{ flex: 1, overflow: 'hidden' }}>
-        {activeFile ? (
-          <MonacoEditor
-            key={activeFile.path}
-            content={activeFile.content}
-            language={activeFile.language}
-            filePath={activeFile.path}
-            onChange={v => onContentChange(activeFile.path, v)}
-            onSave={() => onSave(activeFile.path)}
-          />
-        ) : (
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        {openFiles.map(file => (
+          <div
+            key={file.path}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              visibility: file.path === activeFilePath ? 'visible' : 'hidden',
+              pointerEvents: file.path === activeFilePath ? 'auto' : 'none'
+            }}
+          >
+            <MonacoEditor
+              content={file.content}
+              language={file.language}
+              filePath={file.path}
+              isActive={file.path === activeFilePath}
+              onChange={v => onContentChange(file.path, v)}
+              onSave={() => onSave(file.path)}
+            />
+          </div>
+        ))}
+        {openFiles.length === 0 && (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
