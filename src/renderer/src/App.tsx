@@ -4,6 +4,7 @@ import { MenuBar } from './components/layout/MenuBar'
 import { FileTree } from './components/filetree/FileTree'
 import { EditorArea } from './components/editor/EditorArea'
 import { AIChatPanel } from './components/ai/AIChatPanel'
+import { TerminalPanel } from './components/terminal/TerminalPanel'
 
 export function App() {
   const {
@@ -45,18 +46,7 @@ export function App() {
         />
       }
       aiPanel={<AIChatPanel />}
-      bottomPanel={
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: '0 14px',
-          height: '100%',
-          color: 'var(--text-muted)',
-          fontSize: 12
-        }}>
-          Terminal — coming in M2
-        </div>
-      }
+      bottomPanel={<TerminalPanel />}
     />
   )
 }
