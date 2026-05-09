@@ -152,4 +152,13 @@ describe('useScheduler', () => {
     act(() => { result.current.sendOrEnqueue('During countdown') })
     expect(result.current.queue).toEqual(['During countdown'])
   })
+
+  it('stop clears the queue', async () => {
+    const { result } = renderHook(() => useScheduler())
+    await act(async () => { result.current.sendOrEnqueue('First') })
+    act(() => { result.current.sendOrEnqueue('Second') })
+    act(() => { result.current.sendOrEnqueue('Third') })
+    act(() => { result.current.stop() })
+    expect(result.current.queue).toEqual([])
+  })
 })

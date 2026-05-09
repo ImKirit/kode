@@ -27,10 +27,17 @@ vi.mock('@renderer/components/ai/ProviderSettings', () => ({
   )
 }))
 vi.mock('@renderer/components/ai/QueueDisplay', () => ({
-  QueueDisplay: ({ queue, retryCountdown }: { queue: string[]; retryCountdown: number | null }) => (
-    <div data-testid="queue-display-mock">
+  QueueDisplay: ({ queue, retryCountdown, onRemove, onClearQueue }: {
+    queue: string[]; retryCountdown: number | null;
+    onRemove: (i: number) => void; onClearQueue: () => void
+  }) => (
+    <div data-testid="queue-display-mock"
+      data-queue={JSON.stringify(queue)}
+      data-countdown={retryCountdown}>
       {retryCountdown !== null && <span data-testid="countdown">{retryCountdown}</span>}
       {queue.map((t, i) => <span key={i} data-testid={`queued-${i}`}>{t}</span>)}
+      <button aria-label="mock-remove" onClick={() => onRemove(0)} />
+      <button aria-label="mock-clear" onClick={onClearQueue} />
     </div>
   )
 }))
@@ -127,8 +134,14 @@ describe('AIChatPanel', () => {
     expect(screen.getByRole('button', { name: /stop/i })).toBeInTheDocument()
   })
 
-  it('textarea is disabled when retryCountdown is active', () => {
+  it('textarea is NOT disabled when retryCountdown is active', () => {
     mockUseScheduler.mockReturnValue(defaultSchedulerState({ retryCountdown: 30 }))
+    render(<AIChatPanel />)
+    expect(screen.getByPlaceholderText('Message...')).not.toBeDisabled()
+  })
+
+  it('textarea is disabled when streaming', () => {
+    mockUseScheduler.mockReturnValue(defaultSchedulerState({ isStreaming: true }))
     render(<AIChatPanel />)
     expect(screen.getByPlaceholderText('Message...')).toBeDisabled()
   })
@@ -176,5 +189,18 @@ describe('AIChatPanel', () => {
   it('renders QueueDisplay', () => {
     render(<AIChatPanel />)
     expect(screen.getByTestId('queue-display-mock')).toBeInTheDocument()
+  })
+
+  it('wires removeFromQueue and clearQueue to QueueDisplay', async () => {
+    mockUseScheduler.mockReturnValue(defaultSchedulerState({
+      queue: ['pending prompt'],
+      removeFromQueue: mockRemoveFromQueue,
+      clearQueue: mockClearQueue
+    }))
+    render(<AIChatPanel />)
+    fireEvent.click(screen.getByRole('button', { name: 'mock-remove' }))
+    expect(mockRemoveFromQueue).toHaveBeenCalledWith(0)
+    fireEvent.click(screen.getByRole('button', { name: 'mock-clear' }))
+    expect(mockClearQueue).toHaveBeenCalled()
   })
 })

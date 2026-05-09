@@ -145,9 +145,11 @@ export function useScheduler(): UseSchedulerResult {
   const stop = useCallback(() => {
     window.kode.ai.stop()
     pendingMessagesRef.current = null
+    queueRef.current = []
     isStreamingRef.current = false
     setIsStreaming(false)
     setRetryCountdown(null)
+    setQueue([])
   }, [])
 
   const clearMessages = useCallback(() => {

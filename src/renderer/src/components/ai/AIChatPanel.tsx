@@ -192,7 +192,7 @@ export function AIChatPanel() {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={isBlocked}
+          disabled={isStreaming}
           rows={1}
           style={{
             flex: 1,
