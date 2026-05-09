@@ -75,11 +75,13 @@ describe('useGit', () => {
   it('commit() calls git.commit and resets state', async () => {
     const { result } = renderHook(() => useGit('/project'))
     await act(async () => {})
+    mockGitStatus.mockClear()
     act(() => { result.current.setCommitMessage('feat: thing') })
     await act(async () => { result.current.commit() })
     expect(mockGitCommit).toHaveBeenCalledWith('/project', 'feat: thing')
     expect(result.current.commitMessage).toBe('')
-    expect(result.current.files).toEqual([])
+    expect(result.current.files).toEqual([{ path: 'src/foo.ts', status: 'M' }])
+    expect(mockGitStatus).toHaveBeenCalledTimes(1)
   })
 
   it('commit() is a no-op when commitMessage is empty', async () => {

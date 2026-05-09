@@ -1,10 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 
-interface FileStatus {
-  path: string
-  status: string
-}
-
 interface UseGitResult {
   files: FileStatus[]
   diff: string
@@ -51,25 +46,35 @@ export function useGit(rootPath: string | null): UseGitResult {
     try {
       const d = await window.kode.git.diff(rootPath, filePath)
       setDiff(d)
-    } catch {
+    } catch (e) {
       setDiff('')
+      setError(e instanceof Error ? e.message : String(e))
     }
   }, [rootPath])
 
   const stage = useCallback(async (filePath: string) => {
     if (!rootPath) return
-    await window.kode.git.stage(rootPath, filePath)
-    await refresh()
+    try {
+      await window.kode.git.stage(rootPath, filePath)
+      await refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
   }, [rootPath, refresh])
 
   const commit = useCallback(async () => {
     if (!rootPath || !commitMessage.trim()) return
-    await window.kode.git.commit(rootPath, commitMessage)
-    setCommitMessage('')
-    setFiles([])
-    setDiff('')
-    setSelectedFile(null)
-  }, [rootPath, commitMessage])
+    try {
+      await window.kode.git.commit(rootPath, commitMessage)
+      setCommitMessage('')
+      setFiles([])
+      setDiff('')
+      setSelectedFile(null)
+      await refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
+  }, [rootPath, commitMessage, refresh])
 
   return {
     files, diff, selectedFile, isLoading, commitMessage, error,
