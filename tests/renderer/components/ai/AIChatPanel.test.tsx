@@ -8,7 +8,7 @@ const {
   mockClearMessages,
   mockUseAIChat
 } = vi.hoisted(() => ({
-  mockSendMessage: vi.fn().mockResolvedValue(undefined),
+  mockSendMessage: vi.fn(),
   mockStop: vi.fn(),
   mockSetApiKey: vi.fn(),
   mockClearMessages: vi.fn(),
@@ -117,5 +117,21 @@ describe('AIChatPanel', () => {
     expect(msgs).toHaveLength(2)
     expect(msgs[0]).toHaveTextContent('Hello')
     expect(msgs[1]).toHaveTextContent('Hi there')
+  })
+
+  it('sends message on Enter key (not Shift+Enter)', () => {
+    render(<AIChatPanel />)
+    const input = screen.getByPlaceholderText('Message...')
+    fireEvent.change(input, { target: { value: 'Hello' } })
+    fireEvent.keyDown(input, { key: 'Enter', shiftKey: false })
+    expect(mockSendMessage).toHaveBeenCalledWith('Hello')
+  })
+
+  it('does not send on Shift+Enter', () => {
+    render(<AIChatPanel />)
+    const input = screen.getByPlaceholderText('Message...')
+    fireEvent.change(input, { target: { value: 'Hello' } })
+    fireEvent.keyDown(input, { key: 'Enter', shiftKey: true })
+    expect(mockSendMessage).not.toHaveBeenCalled()
   })
 })

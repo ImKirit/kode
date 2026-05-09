@@ -120,7 +120,7 @@ export function AIChatPanel() {
         )}
         {messages.map((msg, i) => (
           <ChatMessage
-            key={i}
+            key={`${msg.role}-${i}`}
             role={msg.role}
             content={msg.content}
             isStreaming={isStreaming && i === messages.length - 1 && msg.role === 'assistant'}
