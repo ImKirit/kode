@@ -75,3 +75,8 @@ input:focus, textarea:focus {
 /* Electron drag regions */
 .drag-region  { -webkit-app-region: drag; }
 .no-drag      { -webkit-app-region: no-drag; }
+
+@keyframes kode-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
