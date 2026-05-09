@@ -16,6 +16,7 @@ declare global {
         resize(termId: string, cols: number, rows: number): void
         kill(termId: string): void
         onData(termId: string, cb: (data: string) => void): () => void
+        onExit(termId: string, cb: () => void): () => void
       }
       setTitle(title: string): void
     }

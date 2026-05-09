@@ -112,7 +112,11 @@ export function TerminalPanel() {
               pointerEvents: t.id === activeTermId ? 'auto' : 'none'
             }}
           >
-            <XtermTerminal termId={t.id} isActive={t.id === activeTermId} />
+            <XtermTerminal
+              termId={t.id}
+              isActive={t.id === activeTermId}
+              onClose={() => closeTerminal(t.id)}
+            />
           </div>
         ))}
       </div>

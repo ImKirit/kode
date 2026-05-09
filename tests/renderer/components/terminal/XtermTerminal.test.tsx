@@ -34,7 +34,9 @@ beforeEach(() => {
   ;(window as any).kode = {
     terminal: {
       onData: vi.fn().mockReturnValue(mockCleanup),
-      resize: vi.fn()
+      onExit: vi.fn().mockReturnValue(() => {}),
+      resize: vi.fn(),
+      write: vi.fn()
     }
   }
 })
@@ -73,5 +75,17 @@ describe('XtermTerminal', () => {
     const callsBefore = mockFitAddonInst.fit.mock.calls.length
     rerender(<XtermTerminal termId="t1" isActive={true} />)
     expect(mockFitAddonInst.fit.mock.calls.length).toBeGreaterThan(callsBefore)
+  })
+
+  it('subscribes to xterm onData to forward user input to the PTY', () => {
+    render(<XtermTerminal termId="t1" isActive={true} />)
+    expect(mockTerminalInst.onData).toHaveBeenCalled()
+  })
+
+  it('forwards user input from xterm to the PTY via window.kode.terminal.write', () => {
+    render(<XtermTerminal termId="t1" isActive={true} />)
+    const inputHandler = vi.mocked(mockTerminalInst.onData).mock.calls[0][0]
+    inputHandler('ls\n')
+    expect((window as any).kode.terminal.write).toHaveBeenCalledWith('t1', 'ls\n')
   })
 })

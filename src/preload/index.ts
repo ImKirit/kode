@@ -29,6 +29,13 @@ contextBridge.exposeInMainWorld('kode', {
       }
       ipcRenderer.on('terminal:data', listener)
       return () => ipcRenderer.removeListener('terminal:data', listener)
+    },
+    onExit: (termId: string, cb: () => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, id: string) => {
+        if (id === termId) cb()
+      }
+      ipcRenderer.on('terminal:exit', listener)
+      return () => ipcRenderer.removeListener('terminal:exit', listener)
     }
   },
   setTitle: (title: string): void => ipcRenderer.send('window:setTitle', title)

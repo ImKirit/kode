@@ -5,9 +5,10 @@ import { FitAddon } from '@xterm/addon-fit'
 interface XtermTerminalProps {
   termId: string
   isActive: boolean
+  onClose?(): void
 }
 
-export function XtermTerminal({ termId, isActive }: XtermTerminalProps) {
+export function XtermTerminal({ termId, isActive, onClose }: XtermTerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -44,6 +45,17 @@ export function XtermTerminal({ termId, isActive }: XtermTerminalProps) {
 
     const unsubData = window.kode.terminal.onData(termId, data => term.write(data))
 
+    // Forward user keystrokes to the PTY
+    const { dispose: disposeInput } = term.onData(data => {
+      window.kode.terminal.write(termId, data)
+    })
+
+    // Write exit message and notify parent when PTY exits
+    const unsubExit = window.kode.terminal.onExit(termId, () => {
+      term.write('\r\n\x1b[2m[Process exited]\x1b[0m\r\n')
+      onClose?.()
+    })
+
     const observer = new ResizeObserver(() => {
       if (!isActiveRef.current) return  // Skip resize for hidden terminals
       fitAddon.fit()
@@ -53,6 +65,8 @@ export function XtermTerminal({ termId, isActive }: XtermTerminalProps) {
 
     return () => {
       unsubData()
+      disposeInput()
+      unsubExit()
       observer.disconnect()
       term.dispose()
     }
