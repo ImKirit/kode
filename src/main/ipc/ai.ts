@@ -51,8 +51,9 @@ export function registerAiHandlers(): void {
           if (err instanceof Error && err.name === 'AbortError') {
             send('ai:done')
           } else if ((err as { status?: number }).status === 429) {
-            const retryAfter = (err as { headers?: Record<string, string> }).headers?.['retry-after']
-            send('ai:rateLimit', retryAfter ? parseInt(retryAfter, 10) * 1000 : 60000)
+            const raw = (err as { headers?: { get?(k: string): string | null } }).headers?.get?.('retry-after')
+            const parsed = raw ? parseInt(raw, 10) * 1000 : NaN
+            send('ai:rateLimit', Number.isFinite(parsed) && parsed > 0 ? parsed : 60000)
           } else {
             send('ai:error', err instanceof Error ? err.message : String(err))
           }
@@ -79,8 +80,9 @@ export function registerAiHandlers(): void {
         if (err instanceof Error && err.name === 'AbortError') {
           send('ai:done')
         } else if ((err as { status?: number }).status === 429) {
-          const retryAfter = (err as { headers?: Record<string, string> }).headers?.['retry-after']
-          send('ai:rateLimit', retryAfter ? parseInt(retryAfter, 10) * 1000 : 60000)
+          const raw = (err as { headers?: { get?(k: string): string | null } }).headers?.get?.('retry-after')
+          const parsed = raw ? parseInt(raw, 10) * 1000 : NaN
+          send('ai:rateLimit', Number.isFinite(parsed) && parsed > 0 ? parsed : 60000)
         } else {
           send('ai:error', err instanceof Error ? err.message : String(err))
         }

@@ -220,7 +220,9 @@ describe('registerAiHandlers — M4', () => {
     const handler = getHandle('ai:sendMessage')!
     handler({ sender: {} }, [{ role: 'user', content: 'hi' }])
     await new Promise(resolve => setTimeout(resolve, 0))
-    expect(mockWebContentsSend).toHaveBeenCalledWith('ai:rateLimit', expect.any(Number))
+    const rateLimitCall = mockWebContentsSend.mock.calls.find(c => c[0] === 'ai:rateLimit')
+    expect(rateLimitCall).toBeDefined()
+    expect(rateLimitCall![1]).toBeGreaterThan(0)
     expect(mockWebContentsSend).not.toHaveBeenCalledWith('ai:error', expect.anything())
   })
 
@@ -239,7 +241,9 @@ describe('registerAiHandlers — M4', () => {
     registerAiHandlers()
     const handler = getHandle('ai:sendMessage')!
     await handler({ sender: {} }, [{ role: 'user', content: 'hi' }])
-    expect(mockWebContentsSend).toHaveBeenCalledWith('ai:rateLimit', expect.any(Number))
+    const rateLimitCall = mockWebContentsSend.mock.calls.find(c => c[0] === 'ai:rateLimit')
+    expect(rateLimitCall).toBeDefined()
+    expect(rateLimitCall![1]).toBeGreaterThan(0)
     expect(mockWebContentsSend).not.toHaveBeenCalledWith('ai:error', expect.anything())
   })
 })
