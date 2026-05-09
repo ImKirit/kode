@@ -38,5 +38,29 @@ contextBridge.exposeInMainWorld('kode', {
       return () => ipcRenderer.removeListener('terminal:exit', listener)
     }
   },
+  ai: {
+    sendMessage: (
+      messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+      apiKey: string
+    ): Promise<void> =>
+      ipcRenderer.invoke('ai:sendMessage', messages, apiKey),
+    stop: (): void =>
+      ipcRenderer.send('ai:stop'),
+    onToken: (cb: (text: string) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, text: string) => cb(text)
+      ipcRenderer.on('ai:token', listener)
+      return () => ipcRenderer.removeListener('ai:token', listener)
+    },
+    onDone: (cb: () => void): (() => void) => {
+      const listener = () => cb()
+      ipcRenderer.on('ai:done', listener)
+      return () => ipcRenderer.removeListener('ai:done', listener)
+    },
+    onError: (cb: (message: string) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, message: string) => cb(message)
+      ipcRenderer.on('ai:error', listener)
+      return () => ipcRenderer.removeListener('ai:error', listener)
+    }
+  },
   setTitle: (title: string): void => ipcRenderer.send('window:setTitle', title)
 })

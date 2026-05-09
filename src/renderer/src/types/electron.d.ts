@@ -18,6 +18,16 @@ declare global {
         onData(termId: string, cb: (data: string) => void): () => void
         onExit(termId: string, cb: () => void): () => void
       }
+      ai: {
+        sendMessage(
+          messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+          apiKey: string
+        ): Promise<void>
+        stop(): void
+        onToken(cb: (text: string) => void): () => void
+        onDone(cb: () => void): () => void
+        onError(cb: (message: string) => void): () => void
+      }
       setTitle(title: string): void
     }
   }
