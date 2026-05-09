@@ -55,13 +55,16 @@ export function ChangesView({ rootPath }: ChangesViewProps) {
             <div style={{ padding: 12, fontSize: 12, color: 'var(--text-muted)' }}>No changes</div>
           )}
           {files.map(f => (
-            <button
+            <div
               key={f.path}
               data-testid={`change-file-${f.path}`}
+              role="button"
+              tabIndex={0}
               onClick={() => selectFile(f.path)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectFile(f.path) } }}
               style={{
-                width: '100%', textAlign: 'left', background: selectedFile === f.path ? 'var(--bg-primary)' : 'transparent',
-                border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px'
+                padding: '4px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                background: selectedFile === f.path ? 'var(--bg-primary)' : 'transparent'
               }}
             >
               <span style={{ color: '#f59e0b', fontSize: 11, fontFamily: 'monospace', flexShrink: 0 }}>
@@ -85,7 +88,7 @@ export function ChangesView({ rootPath }: ChangesViewProps) {
               >
                 +
               </button>
-            </button>
+            </div>
           ))}
         </div>
 
