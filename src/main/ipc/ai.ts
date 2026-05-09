@@ -21,7 +21,7 @@ export function registerAiHandlers(): void {
     const client = new Anthropic({ apiKey })
     const stream = client.messages.stream({
       model: 'claude-sonnet-4-6',
-      max_tokens: 8096,
+      max_tokens: 8192,
       messages
     })
     currentStream = stream
@@ -33,9 +33,16 @@ export function registerAiHandlers(): void {
 
     stream.on('text', (text: string) => send('ai:token', text))
 
-    stream.finalMessage()
+    return stream.finalMessage()
       .then(() => { currentStream = null; send('ai:done') })
-      .catch((err: Error) => { currentStream = null; send('ai:error', err.message) })
+      .catch((err: unknown) => {
+        currentStream = null
+        if (err instanceof Error && err.name === 'AbortError') {
+          send('ai:done')
+        } else {
+          send('ai:error', err instanceof Error ? err.message : String(err))
+        }
+      })
   })
 
   ipcMain.on('ai:stop', () => {

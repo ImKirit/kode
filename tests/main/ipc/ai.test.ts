@@ -37,10 +37,9 @@ describe('registerAiHandlers', () => {
   })
 
   it('is idempotent — calling twice does not double-register', async () => {
-    const { registerAiHandlers, _resetRegistered } = await import('../../../src/main/ipc/ai')
-    _resetRegistered()
+    const { registerAiHandlers } = await import('../../../src/main/ipc/ai')
     registerAiHandlers()
-    registerAiHandlers()
+    registerAiHandlers() // second call should be no-op
     expect(mockIpcMainHandle).toHaveBeenCalledTimes(1)
   })
 })
