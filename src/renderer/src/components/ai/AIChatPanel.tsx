@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Settings } from 'lucide-react'
 import { useAIChat } from '../../hooks/useAIChat'
+import { useSettings } from '../../hooks/useSettings'
 import { ChatMessage } from './ChatMessage'
+import { ProviderSettings } from './ProviderSettings'
 
 export function AIChatPanel() {
-  const { messages, isStreaming, error, apiKey, setApiKey, sendMessage, stop, clearMessages } = useAIChat()
+  const { messages, isStreaming, error, sendMessage, stop, clearMessages } = useAIChat()
+  const { settings, setActiveProvider, setProviderKey, setProviderModel } = useSettings()
   const [input, setInput] = useState('')
+  const [showSettings, setShowSettings] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll to bottom when new content arrives
   useEffect(() => {
     const el = messagesEndRef.current
     if (el && typeof el.scrollIntoView === 'function') {
@@ -29,6 +32,9 @@ export function AIChatPanel() {
     }
   }, [handleSend])
 
+  const activeModel = settings?.providers[settings.activeProvider]?.model ?? ''
+  const modelLabel = activeModel.split('-').slice(0, 3).join('-')
+
   return (
     <div style={{
       display: 'flex',
@@ -42,7 +48,7 @@ export function AIChatPanel() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 14px',
+        padding: '0 10px 0 14px',
         height: 35,
         borderBottom: '1px solid var(--border)',
         flexShrink: 0
@@ -56,47 +62,64 @@ export function AIChatPanel() {
         }}>
           AI Agent
         </span>
-        <button
-          onClick={clearMessages}
-          title="Clear conversation"
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 4,
-            color: 'var(--text-muted)',
-            display: 'flex',
-            alignItems: 'center'
-          }}
-        >
-          <Trash2 size={13} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {activeModel && (
+            <span style={{
+              fontSize: 10,
+              color: 'var(--text-muted)',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border)',
+              borderRadius: 3,
+              padding: '1px 5px'
+            }}>
+              {modelLabel}
+            </span>
+          )}
+          <button
+            onClick={() => setShowSettings(v => !v)}
+            aria-label="Settings"
+            title="Provider settings"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 4,
+              color: showSettings ? 'var(--accent)' : 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <Settings size={13} />
+          </button>
+          <button
+            onClick={clearMessages}
+            title="Clear conversation"
+            aria-label="Clear"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 4,
+              color: 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
       </div>
 
-      {/* API Key input */}
-      <div style={{
-        padding: '8px 12px',
-        borderBottom: '1px solid var(--border)',
-        flexShrink: 0
-      }}>
-        <input
-          type="password"
-          placeholder="Anthropic API key"
-          value={apiKey}
-          onChange={e => setApiKey(e.target.value)}
-          style={{
-            width: '100%',
-            background: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            borderRadius: 4,
-            padding: '4px 8px',
-            fontSize: 11,
-            color: 'var(--text-primary)',
-            outline: 'none',
-            boxSizing: 'border-box'
-          }}
+      {/* Provider settings panel (collapsible) */}
+      {showSettings && settings && (
+        <ProviderSettings
+          settings={settings}
+          onSetActiveProvider={setActiveProvider}
+          onSetProviderKey={setProviderKey}
+          onSetProviderModel={setProviderModel}
+          onClose={() => setShowSettings(false)}
         />
-      </div>
+      )}
 
       {/* Messages area */}
       <div style={{
@@ -186,6 +209,7 @@ export function AIChatPanel() {
               fontSize: 12,
               color: '#f87171',
               cursor: 'pointer',
+              fontFamily: 'inherit',
               flexShrink: 0
             }}
           >
@@ -194,18 +218,17 @@ export function AIChatPanel() {
         ) : (
           <button
             onClick={handleSend}
-            disabled={!input.trim()}
             aria-label="Send"
             style={{
-              background: input.trim() ? 'var(--accent)' : 'var(--bg-primary)',
-              border: '1px solid var(--border)',
+              background: 'var(--accent)',
+              border: 'none',
               borderRadius: 6,
               padding: '6px 12px',
               fontSize: 12,
-              color: input.trim() ? '#fff' : 'var(--text-muted)',
-              cursor: input.trim() ? 'pointer' : 'default',
-              flexShrink: 0,
-              transition: 'background 0.15s'
+              color: '#fff',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              flexShrink: 0
             }}
           >
             Send

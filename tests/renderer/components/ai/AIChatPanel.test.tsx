@@ -1,40 +1,58 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 
-const {
-  mockSendMessage,
-  mockStop,
-  mockSetApiKey,
-  mockClearMessages,
-  mockUseAIChat
-} = vi.hoisted(() => ({
-  mockSendMessage: vi.fn(),
-  mockStop: vi.fn(),
-  mockSetApiKey: vi.fn(),
-  mockClearMessages: vi.fn(),
-  mockUseAIChat: vi.fn()
-}))
+const mockSendMessage = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
+const mockStop = vi.hoisted(() => vi.fn())
+const mockClearMessages = vi.hoisted(() => vi.fn())
+const mockUseAIChat = vi.hoisted(() => vi.fn())
 
-// Mock useAIChat
-vi.mock('@renderer/hooks/useAIChat', () => ({
-  useAIChat: mockUseAIChat
-}))
+const mockSetActiveProvider = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
+const mockSetProviderKey = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
+const mockSetProviderModel = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
+const mockUpdateSettings = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
+const mockUseSettings = vi.hoisted(() => vi.fn())
 
-// Mock ChatMessage so we don't need all its deps
+vi.mock('@renderer/hooks/useAIChat', () => ({ useAIChat: mockUseAIChat }))
+vi.mock('@renderer/hooks/useSettings', () => ({ useSettings: mockUseSettings }))
 vi.mock('@renderer/components/ai/ChatMessage', () => ({
   ChatMessage: ({ content }: { content: string }) => <div data-testid="chat-message">{content}</div>
 }))
+vi.mock('@renderer/components/ai/ProviderSettings', () => ({
+  ProviderSettings: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="provider-settings">
+      <button onClick={onClose}>Close Settings</button>
+    </div>
+  )
+}))
 
-function defaultHookState(overrides = {}) {
+const DEFAULT_SETTINGS = {
+  activeProvider: 'anthropic' as const,
+  providers: {
+    anthropic: { apiKey: 'sk-ant', model: 'claude-sonnet-4-6' },
+    openai: { apiKey: '', model: 'gpt-4o' }
+  }
+}
+
+function defaultChatState(overrides = {}) {
   return {
     messages: [],
     isStreaming: false,
     error: null,
-    apiKey: '',
-    setApiKey: mockSetApiKey,
     sendMessage: mockSendMessage,
     stop: mockStop,
     clearMessages: mockClearMessages,
+    ...overrides
+  }
+}
+
+function defaultSettingsState(overrides = {}) {
+  return {
+    settings: DEFAULT_SETTINGS,
+    loading: false,
+    updateSettings: mockUpdateSettings,
+    setActiveProvider: mockSetActiveProvider,
+    setProviderKey: mockSetProviderKey,
+    setProviderModel: mockSetProviderModel,
     ...overrides
   }
 }
@@ -44,9 +62,10 @@ import { AIChatPanel } from '@renderer/components/ai/AIChatPanel'
 beforeEach(() => {
   mockSendMessage.mockClear()
   mockStop.mockClear()
-  mockSetApiKey.mockClear()
   mockClearMessages.mockClear()
-  mockUseAIChat.mockReturnValue(defaultHookState())
+  mockUpdateSettings.mockClear()
+  mockUseAIChat.mockReturnValue(defaultChatState())
+  mockUseSettings.mockReturnValue(defaultSettingsState())
 })
 
 describe('AIChatPanel', () => {
@@ -55,9 +74,14 @@ describe('AIChatPanel', () => {
     expect(screen.getByText('AI Agent')).toBeInTheDocument()
   })
 
-  it('renders the API key input', () => {
+  it('shows settings gear button', () => {
     render(<AIChatPanel />)
-    expect(screen.getByPlaceholderText('Anthropic API key')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /settings/i })).toBeInTheDocument()
+  })
+
+  it('shows model badge with current provider and model', () => {
+    render(<AIChatPanel />)
+    expect(screen.getByText(/claude-sonnet/i)).toBeInTheDocument()
   })
 
   it('renders the message input textarea', () => {
@@ -67,8 +91,7 @@ describe('AIChatPanel', () => {
 
   it('calls sendMessage when Send button is clicked with non-empty input', () => {
     render(<AIChatPanel />)
-    const input = screen.getByPlaceholderText('Message...')
-    fireEvent.change(input, { target: { value: 'Hello' } })
+    fireEvent.change(screen.getByPlaceholderText('Message...'), { target: { value: 'Hello' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
     expect(mockSendMessage).toHaveBeenCalledWith('Hello')
   })
@@ -79,59 +102,49 @@ describe('AIChatPanel', () => {
     expect(mockSendMessage).not.toHaveBeenCalled()
   })
 
-  it('calls setApiKey when API key input changes', () => {
-    render(<AIChatPanel />)
-    const keyInput = screen.getByPlaceholderText('Anthropic API key')
-    fireEvent.change(keyInput, { target: { value: 'sk-test' } })
-    expect(mockSetApiKey).toHaveBeenCalledWith('sk-test')
-  })
-
   it('shows Stop button when streaming', () => {
-    mockUseAIChat.mockReturnValue(defaultHookState({ isStreaming: true }))
+    mockUseAIChat.mockReturnValue(defaultChatState({ isStreaming: true }))
     render(<AIChatPanel />)
     expect(screen.getByRole('button', { name: /stop/i })).toBeInTheDocument()
   })
 
   it('calls stop() when Stop button is clicked', () => {
-    mockUseAIChat.mockReturnValue(defaultHookState({ isStreaming: true }))
+    mockUseAIChat.mockReturnValue(defaultChatState({ isStreaming: true }))
     render(<AIChatPanel />)
     fireEvent.click(screen.getByRole('button', { name: /stop/i }))
     expect(mockStop).toHaveBeenCalled()
   })
 
   it('renders error message when error is set', () => {
-    mockUseAIChat.mockReturnValue(defaultHookState({ error: 'Invalid API key' }))
+    mockUseAIChat.mockReturnValue(defaultChatState({ error: 'No API key configured' }))
     render(<AIChatPanel />)
-    expect(screen.getByText('Invalid API key')).toBeInTheDocument()
+    expect(screen.getByText('No API key configured')).toBeInTheDocument()
   })
 
-  it('renders chat messages', () => {
-    mockUseAIChat.mockReturnValue(defaultHookState({
-      messages: [
-        { role: 'user', content: 'Hello' },
-        { role: 'assistant', content: 'Hi there' }
-      ]
-    }))
+  it('opens ProviderSettings when gear is clicked', () => {
     render(<AIChatPanel />)
-    const msgs = screen.getAllByTestId('chat-message')
-    expect(msgs).toHaveLength(2)
-    expect(msgs[0]).toHaveTextContent('Hello')
-    expect(msgs[1]).toHaveTextContent('Hi there')
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }))
+    expect(screen.getByTestId('provider-settings')).toBeInTheDocument()
   })
 
-  it('sends message on Enter key (not Shift+Enter)', () => {
+  it('closes ProviderSettings when close is called from within it', () => {
     render(<AIChatPanel />)
-    const input = screen.getByPlaceholderText('Message...')
-    fireEvent.change(input, { target: { value: 'Hello' } })
-    fireEvent.keyDown(input, { key: 'Enter', shiftKey: false })
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }))
+    fireEvent.click(screen.getByText('Close Settings'))
+    expect(screen.queryByTestId('provider-settings')).not.toBeInTheDocument()
+  })
+
+  it('sends message on Enter key', () => {
+    render(<AIChatPanel />)
+    fireEvent.change(screen.getByPlaceholderText('Message...'), { target: { value: 'Hello' } })
+    fireEvent.keyDown(screen.getByPlaceholderText('Message...'), { key: 'Enter', shiftKey: false })
     expect(mockSendMessage).toHaveBeenCalledWith('Hello')
   })
 
   it('does not send on Shift+Enter', () => {
     render(<AIChatPanel />)
-    const input = screen.getByPlaceholderText('Message...')
-    fireEvent.change(input, { target: { value: 'Hello' } })
-    fireEvent.keyDown(input, { key: 'Enter', shiftKey: true })
+    fireEvent.change(screen.getByPlaceholderText('Message...'), { target: { value: 'Hello' } })
+    fireEvent.keyDown(screen.getByPlaceholderText('Message...'), { key: 'Enter', shiftKey: true })
     expect(mockSendMessage).not.toHaveBeenCalled()
   })
 })
