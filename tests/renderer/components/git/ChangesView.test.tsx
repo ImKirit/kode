@@ -81,4 +81,14 @@ describe('ChangesView', () => {
     fireEvent.click(screen.getByRole('button', { name: /commit/i }))
     expect(mockCommit).toHaveBeenCalledTimes(1)
   })
+
+  it('calls stage when Stage button is clicked for a file', () => {
+    mockUseGit.mockReturnValue({
+      ...defaultGitState,
+      files: [{ path: 'src/foo.ts', status: 'M' }]
+    })
+    render(<ChangesView rootPath="/project" />)
+    fireEvent.click(screen.getByRole('button', { name: /stage src\/foo\.ts/i }))
+    expect(mockStage).toHaveBeenCalledWith('src/foo.ts')
+  })
 })

@@ -7,7 +7,7 @@ interface ChangesViewProps {
 export function ChangesView({ rootPath }: ChangesViewProps) {
   const {
     files, diff, selectedFile, isLoading, commitMessage, error,
-    refresh, selectFile, commit, setCommitMessage
+    refresh, selectFile, stage, commit, setCommitMessage
   } = useGit(rootPath)
 
   return (
@@ -55,13 +55,13 @@ export function ChangesView({ rootPath }: ChangesViewProps) {
             <div style={{ padding: 12, fontSize: 12, color: 'var(--text-muted)' }}>No changes</div>
           )}
           {files.map(f => (
-            <div
+            <button
               key={f.path}
               data-testid={`change-file-${f.path}`}
               onClick={() => selectFile(f.path)}
               style={{
-                padding: '4px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-                background: selectedFile === f.path ? 'var(--bg-primary)' : 'transparent'
+                width: '100%', textAlign: 'left', background: selectedFile === f.path ? 'var(--bg-primary)' : 'transparent',
+                border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px'
               }}
             >
               <span style={{ color: '#f59e0b', fontSize: 11, fontFamily: 'monospace', flexShrink: 0 }}>
@@ -71,9 +71,21 @@ export function ChangesView({ rootPath }: ChangesViewProps) {
                 fontSize: 12, color: 'var(--text-secondary)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
               }}>
-                {f.path.split('/').pop() ?? f.path}
+                {f.path.split(/[\\/]/).pop() ?? f.path}
               </span>
-            </div>
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); stage(f.path) }}
+                aria-label={`Stage ${f.path}`}
+                style={{
+                  background: 'none', border: '1px solid var(--border)', borderRadius: 3,
+                  cursor: 'pointer', fontSize: 10, color: 'var(--text-muted)',
+                  fontFamily: 'inherit', padding: '1px 5px', marginLeft: 'auto', flexShrink: 0
+                }}
+              >
+                +
+              </button>
+            </button>
           ))}
         </div>
 
@@ -114,6 +126,7 @@ export function ChangesView({ rootPath }: ChangesViewProps) {
           value={commitMessage}
           onChange={e => setCommitMessage(e.target.value)}
           placeholder="Commit message..."
+          aria-label="Commit message"
           style={{
             flex: 1, background: 'var(--bg-primary)', border: '1px solid var(--border)',
             borderRadius: 4, padding: '4px 8px', fontSize: 12, color: 'var(--text-primary)',
