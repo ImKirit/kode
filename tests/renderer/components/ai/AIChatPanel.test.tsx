@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 
-const mockSendMessage = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
+const mockSendOrEnqueue = vi.hoisted(() => vi.fn())
 const mockStop = vi.hoisted(() => vi.fn())
 const mockClearMessages = vi.hoisted(() => vi.fn())
-const mockUseAIChat = vi.hoisted(() => vi.fn())
+const mockRemoveFromQueue = vi.hoisted(() => vi.fn())
+const mockClearQueue = vi.hoisted(() => vi.fn())
+const mockUseScheduler = vi.hoisted(() => vi.fn())
 
 const mockSetActiveProvider = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
 const mockSetProviderKey = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
@@ -12,7 +14,7 @@ const mockSetProviderModel = vi.hoisted(() => vi.fn().mockResolvedValue(undefine
 const mockUpdateSettings = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
 const mockUseSettings = vi.hoisted(() => vi.fn())
 
-vi.mock('@renderer/hooks/useAIChat', () => ({ useAIChat: mockUseAIChat }))
+vi.mock('@renderer/hooks/useScheduler', () => ({ useScheduler: mockUseScheduler }))
 vi.mock('@renderer/hooks/useSettings', () => ({ useSettings: mockUseSettings }))
 vi.mock('@renderer/components/ai/ChatMessage', () => ({
   ChatMessage: ({ content }: { content: string }) => <div data-testid="chat-message">{content}</div>
@@ -21,6 +23,14 @@ vi.mock('@renderer/components/ai/ProviderSettings', () => ({
   ProviderSettings: ({ onClose }: { onClose: () => void }) => (
     <div data-testid="provider-settings">
       <button onClick={onClose}>Close Settings</button>
+    </div>
+  )
+}))
+vi.mock('@renderer/components/ai/QueueDisplay', () => ({
+  QueueDisplay: ({ queue, retryCountdown }: { queue: string[]; retryCountdown: number | null }) => (
+    <div data-testid="queue-display-mock">
+      {retryCountdown !== null && <span data-testid="countdown">{retryCountdown}</span>}
+      {queue.map((t, i) => <span key={i} data-testid={`queued-${i}`}>{t}</span>)}
     </div>
   )
 }))
@@ -33,14 +43,18 @@ const DEFAULT_SETTINGS = {
   }
 }
 
-function defaultChatState(overrides = {}) {
+function defaultSchedulerState(overrides = {}) {
   return {
     messages: [],
     isStreaming: false,
     error: null,
-    sendMessage: mockSendMessage,
+    retryCountdown: null,
+    queue: [],
+    sendOrEnqueue: mockSendOrEnqueue,
     stop: mockStop,
     clearMessages: mockClearMessages,
+    removeFromQueue: mockRemoveFromQueue,
+    clearQueue: mockClearQueue,
     ...overrides
   }
 }
@@ -60,11 +74,10 @@ function defaultSettingsState(overrides = {}) {
 import { AIChatPanel } from '@renderer/components/ai/AIChatPanel'
 
 beforeEach(() => {
-  mockSendMessage.mockClear()
+  mockSendOrEnqueue.mockClear()
   mockStop.mockClear()
   mockClearMessages.mockClear()
-  mockUpdateSettings.mockClear()
-  mockUseAIChat.mockReturnValue(defaultChatState())
+  mockUseScheduler.mockReturnValue(defaultSchedulerState())
   mockUseSettings.mockReturnValue(defaultSettingsState())
 })
 
@@ -89,34 +102,46 @@ describe('AIChatPanel', () => {
     expect(screen.getByPlaceholderText('Message...')).toBeInTheDocument()
   })
 
-  it('calls sendMessage when Send button is clicked with non-empty input', () => {
+  it('calls sendOrEnqueue when Send button is clicked with non-empty input', () => {
     render(<AIChatPanel />)
     fireEvent.change(screen.getByPlaceholderText('Message...'), { target: { value: 'Hello' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
-    expect(mockSendMessage).toHaveBeenCalledWith('Hello')
+    expect(mockSendOrEnqueue).toHaveBeenCalledWith('Hello')
   })
 
-  it('does not call sendMessage when input is empty', () => {
+  it('does not call sendOrEnqueue when input is empty', () => {
     render(<AIChatPanel />)
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
-    expect(mockSendMessage).not.toHaveBeenCalled()
+    expect(mockSendOrEnqueue).not.toHaveBeenCalled()
   })
 
   it('shows Stop button when streaming', () => {
-    mockUseAIChat.mockReturnValue(defaultChatState({ isStreaming: true }))
+    mockUseScheduler.mockReturnValue(defaultSchedulerState({ isStreaming: true }))
     render(<AIChatPanel />)
     expect(screen.getByRole('button', { name: /stop/i })).toBeInTheDocument()
   })
 
+  it('shows Stop button when retryCountdown is active', () => {
+    mockUseScheduler.mockReturnValue(defaultSchedulerState({ retryCountdown: 30 }))
+    render(<AIChatPanel />)
+    expect(screen.getByRole('button', { name: /stop/i })).toBeInTheDocument()
+  })
+
+  it('textarea is disabled when retryCountdown is active', () => {
+    mockUseScheduler.mockReturnValue(defaultSchedulerState({ retryCountdown: 30 }))
+    render(<AIChatPanel />)
+    expect(screen.getByPlaceholderText('Message...')).toBeDisabled()
+  })
+
   it('calls stop() when Stop button is clicked', () => {
-    mockUseAIChat.mockReturnValue(defaultChatState({ isStreaming: true }))
+    mockUseScheduler.mockReturnValue(defaultSchedulerState({ isStreaming: true }))
     render(<AIChatPanel />)
     fireEvent.click(screen.getByRole('button', { name: /stop/i }))
     expect(mockStop).toHaveBeenCalled()
   })
 
   it('renders error message when error is set', () => {
-    mockUseAIChat.mockReturnValue(defaultChatState({ error: 'No API key configured' }))
+    mockUseScheduler.mockReturnValue(defaultSchedulerState({ error: 'No API key configured' }))
     render(<AIChatPanel />)
     expect(screen.getByText('No API key configured')).toBeInTheDocument()
   })
@@ -138,13 +163,18 @@ describe('AIChatPanel', () => {
     render(<AIChatPanel />)
     fireEvent.change(screen.getByPlaceholderText('Message...'), { target: { value: 'Hello' } })
     fireEvent.keyDown(screen.getByPlaceholderText('Message...'), { key: 'Enter', shiftKey: false })
-    expect(mockSendMessage).toHaveBeenCalledWith('Hello')
+    expect(mockSendOrEnqueue).toHaveBeenCalledWith('Hello')
   })
 
   it('does not send on Shift+Enter', () => {
     render(<AIChatPanel />)
     fireEvent.change(screen.getByPlaceholderText('Message...'), { target: { value: 'Hello' } })
     fireEvent.keyDown(screen.getByPlaceholderText('Message...'), { key: 'Enter', shiftKey: true })
-    expect(mockSendMessage).not.toHaveBeenCalled()
+    expect(mockSendOrEnqueue).not.toHaveBeenCalled()
+  })
+
+  it('renders QueueDisplay', () => {
+    render(<AIChatPanel />)
+    expect(screen.getByTestId('queue-display-mock')).toBeInTheDocument()
   })
 })

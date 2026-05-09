@@ -1,12 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Trash2, Settings } from 'lucide-react'
-import { useAIChat } from '../../hooks/useAIChat'
+import { useScheduler } from '../../hooks/useScheduler'
 import { useSettings } from '../../hooks/useSettings'
 import { ChatMessage } from './ChatMessage'
 import { ProviderSettings } from './ProviderSettings'
+import { QueueDisplay } from './QueueDisplay'
 
 export function AIChatPanel() {
-  const { messages, isStreaming, error, sendMessage, stop, clearMessages } = useAIChat()
+  const {
+    messages, isStreaming, error, retryCountdown, queue,
+    sendOrEnqueue, stop, clearMessages, removeFromQueue, clearQueue
+  } = useScheduler()
   const { settings, setActiveProvider, setProviderKey, setProviderModel } = useSettings()
   const [input, setInput] = useState('')
   const [showSettings, setShowSettings] = useState(false)
@@ -21,9 +25,9 @@ export function AIChatPanel() {
 
   const handleSend = useCallback(() => {
     if (!input.trim()) return
-    sendMessage(input)
+    sendOrEnqueue(input)
     setInput('')
-  }, [input, sendMessage])
+  }, [input, sendOrEnqueue])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -32,6 +36,7 @@ export function AIChatPanel() {
     }
   }, [handleSend])
 
+  const isBlocked = isStreaming || retryCountdown !== null
   const activeModel = settings?.providers[settings.activeProvider]?.model ?? ''
   const modelLabel = activeModel.split('-').slice(0, 3).join('-')
 
@@ -165,6 +170,14 @@ export function AIChatPanel() {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Queue + retry countdown */}
+      <QueueDisplay
+        queue={queue}
+        retryCountdown={retryCountdown}
+        onRemove={removeFromQueue}
+        onClearQueue={clearQueue}
+      />
+
       {/* Input area */}
       <div style={{
         padding: '8px 12px',
@@ -179,7 +192,7 @@ export function AIChatPanel() {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={isStreaming}
+          disabled={isBlocked}
           rows={1}
           style={{
             flex: 1,
@@ -197,7 +210,7 @@ export function AIChatPanel() {
             overflowY: 'auto'
           }}
         />
-        {isStreaming ? (
+        {isBlocked ? (
           <button
             onClick={stop}
             aria-label="Stop"
