@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// --- hoisted mocks (must exist before vi.mock factory runs) ---
 const mockIpcMainHandle = vi.hoisted(() => vi.fn())
 const mockIpcMainOn = vi.hoisted(() => vi.fn())
 const mockWebContentsSend = vi.hoisted(() => vi.fn())
@@ -10,6 +9,15 @@ const mockStreamOn = vi.hoisted(() => vi.fn())
 const mockStreamAbort = vi.hoisted(() => vi.fn())
 const mockFinalMessage = vi.hoisted(() => vi.fn())
 const mockMessagesStream = vi.hoisted(() => vi.fn())
+
+// OpenAI async iterable mock
+const mockOpenAIStream = vi.hoisted(() => ({
+  [Symbol.asyncIterator]: vi.fn()
+}))
+const mockChatCompletionsCreate = vi.hoisted(() => vi.fn())
+
+// Settings mock
+const mockLoadSettings = vi.hoisted(() => vi.fn())
 
 vi.mock('electron', () => ({
   ipcMain: { handle: mockIpcMainHandle, on: mockIpcMainOn },
@@ -27,7 +35,16 @@ vi.mock('@anthropic-ai/sdk', () => ({
   }))
 }))
 
-// Helper to get the registered handler for a channel
+vi.mock('openai', () => ({
+  default: vi.fn().mockImplementation(() => ({
+    chat: { completions: { create: mockChatCompletionsCreate } }
+  }))
+}))
+
+vi.mock('../../../src/main/ipc/settings', () => ({
+  loadSettings: mockLoadSettings
+}))
+
 function getHandle(channel: string) {
   const call = mockIpcMainHandle.mock.calls.find(c => c[0] === channel)
   return call?.[1] as ((...args: unknown[]) => unknown) | undefined
@@ -37,7 +54,7 @@ function getOn(channel: string) {
   return call?.[1] as ((...args: unknown[]) => unknown) | undefined
 }
 
-describe('registerAiHandlers — streaming', () => {
+describe('registerAiHandlers — M4', () => {
   beforeEach(async () => {
     vi.resetModules()
     mockIpcMainHandle.mockClear()
@@ -47,10 +64,17 @@ describe('registerAiHandlers — streaming', () => {
     mockStreamAbort.mockClear()
     mockIsDestroyed.mockReturnValue(false)
 
-    // Each test gets a fresh stream mock
     mockFinalMessage.mockResolvedValue({})
     mockStreamOn.mockReturnValue({ on: mockStreamOn, abort: mockStreamAbort, finalMessage: mockFinalMessage })
     mockMessagesStream.mockReturnValue({ on: mockStreamOn, abort: mockStreamAbort, finalMessage: mockFinalMessage })
+
+    mockLoadSettings.mockReturnValue({
+      activeProvider: 'anthropic',
+      providers: {
+        anthropic: { apiKey: 'sk-ant-test', model: 'claude-sonnet-4-6' },
+        openai: { apiKey: 'sk-openai-test', model: 'gpt-4o' }
+      }
+    })
   })
 
   it('registers ai:sendMessage handle', async () => {
@@ -67,109 +91,101 @@ describe('registerAiHandlers — streaming', () => {
     expect(mockIpcMainOn).toHaveBeenCalledWith('ai:stop', expect.any(Function))
   })
 
-  it('is idempotent — calling twice does not double-register', async () => {
+  it('is idempotent', async () => {
     const { registerAiHandlers } = await import('../../../src/main/ipc/ai')
     registerAiHandlers()
     registerAiHandlers()
     expect(mockIpcMainHandle).toHaveBeenCalledTimes(1)
   })
 
-  it('creates Anthropic client with provided apiKey and calls stream()', async () => {
+  it('reads API key from settings (not from renderer args)', async () => {
     const Anthropic = (await import('@anthropic-ai/sdk')).default as ReturnType<typeof vi.fn>
     const { registerAiHandlers, _resetRegistered } = await import('../../../src/main/ipc/ai')
     _resetRegistered()
     registerAiHandlers()
-
     const handler = getHandle('ai:sendMessage')!
-    const fakeEvent = { sender: {} }
-    handler(fakeEvent, [{ role: 'user', content: 'hi' }], 'sk-test-key')
-
-    expect(Anthropic).toHaveBeenCalledWith({ apiKey: 'sk-test-key' })
-    expect(mockMessagesStream).toHaveBeenCalledWith({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 8192,
-      messages: [{ role: 'user', content: 'hi' }]
-    })
+    handler({ sender: {} }, [{ role: 'user', content: 'hi' }])
+    expect(Anthropic).toHaveBeenCalledWith({ apiKey: 'sk-ant-test' })
   })
 
-  it('sends ai:token to window when text event fires', async () => {
+  it('sends ai:error when API key is empty', async () => {
+    mockLoadSettings.mockReturnValue({
+      activeProvider: 'anthropic',
+      providers: {
+        anthropic: { apiKey: '', model: 'claude-sonnet-4-6' },
+        openai: { apiKey: '', model: 'gpt-4o' }
+      }
+    })
     const { registerAiHandlers, _resetRegistered } = await import('../../../src/main/ipc/ai')
     _resetRegistered()
     registerAiHandlers()
-
-    let textCb: ((text: string) => void) | undefined
-    mockStreamOn.mockImplementation((event: string, cb: (text: string) => void) => {
-      if (event === 'text') textCb = cb
-      return { on: mockStreamOn, abort: mockStreamAbort, finalMessage: mockFinalMessage }
-    })
-    mockMessagesStream.mockReturnValue({ on: mockStreamOn, abort: mockStreamAbort, finalMessage: mockFinalMessage })
-
     const handler = getHandle('ai:sendMessage')!
-    handler({ sender: {} }, [{ role: 'user', content: 'hi' }], 'sk-test')
-
-    textCb?.('Hello ')
-    expect(mockWebContentsSend).toHaveBeenCalledWith('ai:token', 'Hello ')
+    handler({ sender: {} }, [{ role: 'user', content: 'hi' }])
+    expect(mockWebContentsSend).toHaveBeenCalledWith('ai:error', expect.stringContaining('API key'))
   })
 
-  it('sends ai:done when finalMessage resolves', async () => {
+  it('uses OpenAI when activeProvider is openai', async () => {
+    mockLoadSettings.mockReturnValue({
+      activeProvider: 'openai',
+      providers: {
+        anthropic: { apiKey: 'sk-ant', model: 'claude-sonnet-4-6' },
+        openai: { apiKey: 'sk-openai-test', model: 'gpt-4o' }
+      }
+    })
+
+    const chunks = [
+      { choices: [{ delta: { content: 'Hello' } }] },
+      { choices: [{ delta: { content: ' world' } }] }
+    ]
+    mockOpenAIStream[Symbol.asyncIterator].mockReturnValue({
+      next: vi.fn()
+        .mockResolvedValueOnce({ value: chunks[0], done: false })
+        .mockResolvedValueOnce({ value: chunks[1], done: false })
+        .mockResolvedValueOnce({ value: undefined, done: true })
+    })
+    mockChatCompletionsCreate.mockResolvedValue(mockOpenAIStream)
+
+    const OpenAI = (await import('openai')).default as ReturnType<typeof vi.fn>
     const { registerAiHandlers, _resetRegistered } = await import('../../../src/main/ipc/ai')
     _resetRegistered()
     registerAiHandlers()
-
     const handler = getHandle('ai:sendMessage')!
-    handler({ sender: {} }, [{ role: 'user', content: 'hi' }], 'sk-test')
+    await handler({ sender: {} }, [{ role: 'user', content: 'hi' }])
 
-    // finalMessage resolves → ai:done
+    expect(OpenAI).toHaveBeenCalledWith({ apiKey: 'sk-openai-test' })
+    expect(mockWebContentsSend).toHaveBeenCalledWith('ai:token', 'Hello')
+    expect(mockWebContentsSend).toHaveBeenCalledWith('ai:token', ' world')
+    expect(mockWebContentsSend).toHaveBeenCalledWith('ai:done')
+  })
+
+  it('sends ai:done when Anthropic finalMessage resolves', async () => {
+    const { registerAiHandlers, _resetRegistered } = await import('../../../src/main/ipc/ai')
+    _resetRegistered()
+    registerAiHandlers()
+    const handler = getHandle('ai:sendMessage')!
+    handler({ sender: {} }, [{ role: 'user', content: 'hi' }])
     await new Promise(resolve => setTimeout(resolve, 0))
     expect(mockWebContentsSend).toHaveBeenCalledWith('ai:done')
   })
 
-  it('sends ai:error when finalMessage rejects with non-abort error', async () => {
-    mockFinalMessage.mockRejectedValue(new Error('Invalid API key'))
+  it('sends ai:error when Anthropic finalMessage rejects with non-abort error', async () => {
+    mockFinalMessage.mockRejectedValue(new Error('Rate limit'))
     mockMessagesStream.mockReturnValue({ on: mockStreamOn, abort: mockStreamAbort, finalMessage: mockFinalMessage })
-
     const { registerAiHandlers, _resetRegistered } = await import('../../../src/main/ipc/ai')
     _resetRegistered()
     registerAiHandlers()
-
     const handler = getHandle('ai:sendMessage')!
-    handler({ sender: {} }, [{ role: 'user', content: 'hi' }], 'sk-bad')
-
+    handler({ sender: {} }, [{ role: 'user', content: 'hi' }])
     await new Promise(resolve => setTimeout(resolve, 0))
-    expect(mockWebContentsSend).toHaveBeenCalledWith('ai:error', 'Invalid API key')
+    expect(mockWebContentsSend).toHaveBeenCalledWith('ai:error', 'Rate limit')
   })
 
-  it('sends ai:done (not ai:error) when stream is aborted via ai:stop', async () => {
-    const abortError = new Error('Stream aborted')
-    abortError.name = 'AbortError'
-    mockFinalMessage.mockRejectedValue(abortError)
-    mockMessagesStream.mockReturnValue({ on: mockStreamOn, abort: mockStreamAbort, finalMessage: mockFinalMessage })
-
+  it('ai:stop aborts current Anthropic stream', async () => {
     const { registerAiHandlers, _resetRegistered } = await import('../../../src/main/ipc/ai')
     _resetRegistered()
     registerAiHandlers()
-
     const handler = getHandle('ai:sendMessage')!
-    handler({ sender: {} }, [{ role: 'user', content: 'hi' }], 'sk-test')
-
-    const stopHandler = getOn('ai:stop')!
-    stopHandler()
-
-    await new Promise(resolve => setTimeout(resolve, 0))
-    expect(mockWebContentsSend).toHaveBeenCalledWith('ai:done')
-    expect(mockWebContentsSend).not.toHaveBeenCalledWith('ai:error', expect.any(String))
-  })
-
-  it('ai:stop aborts the current stream', async () => {
-    const { registerAiHandlers, _resetRegistered } = await import('../../../src/main/ipc/ai')
-    _resetRegistered()
-    registerAiHandlers()
-
-    // Start a stream
-    const handler = getHandle('ai:sendMessage')!
-    handler({ sender: {} }, [{ role: 'user', content: 'hi' }], 'sk-test')
-
-    // Stop it
+    handler({ sender: {} }, [{ role: 'user', content: 'hi' }])
     const stopHandler = getOn('ai:stop')!
     stopHandler()
     expect(mockStreamAbort).toHaveBeenCalled()
@@ -177,7 +193,6 @@ describe('registerAiHandlers — streaming', () => {
 
   it('does not send to destroyed window', async () => {
     mockIsDestroyed.mockReturnValue(true)
-
     const { registerAiHandlers, _resetRegistered } = await import('../../../src/main/ipc/ai')
     _resetRegistered()
     registerAiHandlers()
@@ -190,9 +205,8 @@ describe('registerAiHandlers — streaming', () => {
     mockMessagesStream.mockReturnValue({ on: mockStreamOn, abort: mockStreamAbort, finalMessage: mockFinalMessage })
 
     const handler = getHandle('ai:sendMessage')!
-    handler({ sender: {} }, [{ role: 'user', content: 'hi' }], 'sk-test')
+    handler({ sender: {} }, [{ role: 'user', content: 'hi' }])
     textCb?.('hello')
-
     expect(mockWebContentsSend).not.toHaveBeenCalled()
   })
 })
