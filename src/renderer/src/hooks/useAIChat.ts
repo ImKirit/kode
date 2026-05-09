@@ -26,9 +26,11 @@ export function useAIChat(): UseAIChatResult {
 
   const messagesRef = useRef<ChatMessage[]>([])
   const isStreamingRef = useRef(false)
+  const apiKeyRef = useRef(apiKey)
 
   useEffect(() => { messagesRef.current = messages }, [messages])
   useEffect(() => { isStreamingRef.current = isStreaming }, [isStreaming])
+  useEffect(() => { apiKeyRef.current = apiKey }, [apiKey])
 
   useEffect(() => {
     const unToken = window.kode.ai.onToken((text) => {
@@ -63,13 +65,14 @@ export function useAIChat(): UseAIChatResult {
     const assistantMsg: ChatMessage = { role: 'assistant', content: '' }
     const prevMessages = messagesRef.current
     setMessages(prev => [...prev, userMsg, assistantMsg])
+    isStreamingRef.current = true
     setIsStreaming(true)
     setError(null)
     await window.kode.ai.sendMessage(
       [...prevMessages, userMsg].map(m => ({ role: m.role, content: m.content })),
-      apiKey
+      apiKeyRef.current
     )
-  }, [apiKey])
+  }, [])
 
   const stop = useCallback(() => {
     window.kode.ai.stop()
