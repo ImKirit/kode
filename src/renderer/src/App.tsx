@@ -8,7 +8,7 @@ import { MenuBar } from './components/layout/MenuBar'
 import { FileTree } from './components/filetree/FileTree'
 import { EditorArea } from './components/editor/EditorArea'
 import { AIChatPanel } from './components/ai/AIChatPanel'
-import { TerminalPanel } from './components/terminal/TerminalPanel'
+import { BottomPanel } from './components/layout/BottomPanel'
 
 export function App() {
   const {
@@ -82,7 +82,7 @@ export function App() {
           onToggleAutoFollow={autoFollow.toggle}
         />
       }
-      bottomPanel={<TerminalPanel />}
+      bottomPanel={<BottomPanel rootPath={project.rootPath} />}
     />
   )
 }
