@@ -16,7 +16,7 @@ vi.mock('electron', () => ({
 
 import * as pty from 'node-pty'
 import { ipcMain, BrowserWindow } from 'electron'
-import { registerTerminalHandlers, killAllTerminals } from '../../../src/main/ipc/terminal'
+import { registerTerminalHandlers, killAllTerminals, _resetRegistered } from '../../../src/main/ipc/terminal'
 
 describe('terminal IPC handlers', () => {
   let spawnHandler: Function
@@ -45,7 +45,8 @@ describe('terminal IPC handlers', () => {
 
     vi.mocked(pty.spawn).mockReturnValue(mockPty as any)
     vi.mocked(BrowserWindow.fromWebContents).mockReturnValue({
-      webContents: mockWebContents
+      webContents: mockWebContents,
+      isDestroyed: vi.fn().mockReturnValue(false)
     } as any)
 
     vi.mocked(ipcMain.handle).mockImplementation((channel, handler) => {
@@ -59,6 +60,7 @@ describe('terminal IPC handlers', () => {
       return ipcMain
     })
 
+    _resetRegistered()
     registerTerminalHandlers()
   })
 

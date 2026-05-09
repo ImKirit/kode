@@ -3,7 +3,18 @@ import * as pty from 'node-pty'
 
 const terminals = new Map<string, pty.IPty>()
 
+// Issue 1: idempotency guard — ipcMain.handle throws if called twice for the same channel
+let registered = false
+
+/** Reset registration state. Intended for use in tests only. */
+export function _resetRegistered(): void {
+  registered = false
+}
+
 export function registerTerminalHandlers(): void {
+  if (registered) return
+  registered = true
+
   ipcMain.handle('terminal:spawn', (event, cols: number, rows: number) => {
     const termId = crypto.randomUUID()
     const shell = process.platform === 'win32'
@@ -22,9 +33,21 @@ export function registerTerminalHandlers(): void {
 
     terminals.set(termId, term)
 
-    const win = BrowserWindow.fromWebContents(event.sender)
+    // Issue 3: look up the window dynamically so we never hold a stale reference
     term.onData(data => {
-      win?.webContents.send('terminal:data', termId, data)
+      const target = BrowserWindow.fromWebContents(event.sender)
+      if (target && !target.isDestroyed()) {
+        target.webContents.send('terminal:data', termId, data)
+      }
+    })
+
+    // Issue 2: clean up the Map and notify the renderer when the shell exits on its own
+    term.onExit(() => {
+      terminals.delete(termId)
+      const target = BrowserWindow.fromWebContents(event.sender)
+      if (target && !target.isDestroyed()) {
+        target.webContents.send('terminal:exit', termId)
+      }
     })
 
     return termId
