@@ -11,6 +11,10 @@ export function XtermTerminal({ termId, isActive }: XtermTerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
+  const isActiveRef = useRef(isActive)
+
+  // Keep isActiveRef in sync with the isActive prop
+  useEffect(() => { isActiveRef.current = isActive }, [isActive])
 
   // Mount: create xterm instance, open it, attach data listener and resize observer
   useEffect(() => {
@@ -41,6 +45,7 @@ export function XtermTerminal({ termId, isActive }: XtermTerminalProps) {
     const unsubData = window.kode.terminal.onData(termId, data => term.write(data))
 
     const observer = new ResizeObserver(() => {
+      if (!isActiveRef.current) return  // Skip resize for hidden terminals
       fitAddon.fit()
       window.kode.terminal.resize(termId, term.cols, term.rows)
     })

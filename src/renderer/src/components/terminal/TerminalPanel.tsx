@@ -88,7 +88,7 @@ export function TerminalPanel() {
       </div>
 
       {/* Terminal area: all instances stay mounted; only active is visible */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: '#1e1e1e' }}>
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: 'var(--bg-primary)' }}>
         {terminals.length === 0 && (
           <div style={{
             display: 'flex',
@@ -108,7 +108,8 @@ export function TerminalPanel() {
               position: 'absolute',
               inset: 0,
               display: 'flex',
-              visibility: t.id === activeTermId ? 'visible' : 'hidden'
+              visibility: t.id === activeTermId ? 'visible' : 'hidden',
+              pointerEvents: t.id === activeTermId ? 'auto' : 'none'
             }}
           >
             <XtermTerminal termId={t.id} isActive={t.id === activeTermId} />
