@@ -17,6 +17,7 @@ beforeEach(() => {
   mockSendMessage.mockClear()
   mockStop.mockClear()
   localStorage.clear()
+  localStorage.setItem('kode.apiKey', 'sk-test')
 
   Object.defineProperty(window, 'kode', {
     value: {

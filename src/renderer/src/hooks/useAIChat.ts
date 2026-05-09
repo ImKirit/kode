@@ -59,7 +59,7 @@ export function useAIChat(): UseAIChatResult {
   }, [])
 
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || isStreamingRef.current) return
+    if (!text.trim() || isStreamingRef.current || !apiKeyRef.current.trim()) return
     const trimmed = text.trim()
     const userMsg: ChatMessage = { role: 'user', content: trimmed }
     const assistantMsg: ChatMessage = { role: 'assistant', content: '' }
