@@ -6,6 +6,12 @@ export interface FileStatus {
   status: string
 }
 
+function validateRootPath(rootPath: unknown): asserts rootPath is string {
+  if (typeof rootPath !== 'string' || rootPath.trim() === '') {
+    throw new Error('rootPath must be a non-empty string')
+  }
+}
+
 let registered = false
 
 export function _resetRegistered(): void {
@@ -17,26 +23,46 @@ export function registerGitHandlers(): void {
   registered = true
 
   ipcMain.handle('git:status', async (_event, rootPath: string): Promise<FileStatus[]> => {
-    const git = simpleGit(rootPath)
-    const status = await git.status()
-    return status.files.map(f => ({
-      path: f.path,
-      status: (f.working_dir !== ' ' && f.working_dir !== '' ? f.working_dir : f.index) || '?'
-    }))
+    validateRootPath(rootPath)
+    try {
+      const git = simpleGit(rootPath)
+      const status = await git.status()
+      return status.files.map(f => ({
+        path: f.path,
+        status: (f.working_dir !== ' ' && f.working_dir !== '' ? f.working_dir : f.index) || '?'
+      }))
+    } catch (e) {
+      throw new Error(e instanceof Error ? e.message : String(e))
+    }
   })
 
   ipcMain.handle('git:diff', async (_event, rootPath: string, filePath?: string): Promise<string> => {
-    const git = simpleGit(rootPath)
-    return git.diff(filePath ? ['--', filePath] : [])
+    validateRootPath(rootPath)
+    try {
+      const git = simpleGit(rootPath)
+      return git.diff(filePath ? ['--', filePath] : [])
+    } catch (e) {
+      throw new Error(e instanceof Error ? e.message : String(e))
+    }
   })
 
   ipcMain.handle('git:stage', async (_event, rootPath: string, filePath: string): Promise<void> => {
-    const git = simpleGit(rootPath)
-    await git.add(filePath)
+    validateRootPath(rootPath)
+    try {
+      const git = simpleGit(rootPath)
+      await git.add(filePath)
+    } catch (e) {
+      throw new Error(e instanceof Error ? e.message : String(e))
+    }
   })
 
   ipcMain.handle('git:commit', async (_event, rootPath: string, message: string): Promise<void> => {
-    const git = simpleGit(rootPath)
-    await git.commit(message)
+    validateRootPath(rootPath)
+    try {
+      const git = simpleGit(rootPath)
+      await git.commit(message)
+    } catch (e) {
+      throw new Error(e instanceof Error ? e.message : String(e))
+    }
   })
 }
