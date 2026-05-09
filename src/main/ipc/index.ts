@@ -6,6 +6,7 @@ import {
   openFolderHandler
 } from './fs'
 import { registerTerminalHandlers } from './terminal'
+import { registerAiHandlers } from './ai'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('fs:readDir', (_event, dirPath: string) => readDirHandler(dirPath))
@@ -15,4 +16,5 @@ export function registerIpcHandlers(): void {
   )
   ipcMain.handle('fs:openFolder', () => openFolderHandler())
   registerTerminalHandlers()
+  registerAiHandlers()
 }
