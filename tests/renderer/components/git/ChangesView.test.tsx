@@ -76,7 +76,11 @@ describe('ChangesView', () => {
   })
 
   it('calls commit when Commit button clicked', () => {
-    mockUseGit.mockReturnValue({ ...defaultGitState, commitMessage: 'feat: thing' })
+    mockUseGit.mockReturnValue({
+      ...defaultGitState,
+      commitMessage: 'feat: thing',
+      files: [{ path: 'src/foo.ts', status: 'M' }]
+    })
     render(<ChangesView rootPath="/project" />)
     fireEvent.click(screen.getByRole('button', { name: /commit/i }))
     expect(mockCommit).toHaveBeenCalledTimes(1)

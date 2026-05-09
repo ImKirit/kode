@@ -85,8 +85,8 @@ contextBridge.exposeInMainWorld('kode', {
   git: {
     status: (rootPath: string): Promise<Array<{ path: string; status: string }>> =>
       ipcRenderer.invoke('git:status', rootPath),
-    diff: (rootPath: string, filePath?: string): Promise<string> =>
-      ipcRenderer.invoke('git:diff', rootPath, filePath),
+    diff: (rootPath: string, filePath?: string, cached?: boolean): Promise<string> =>
+      ipcRenderer.invoke('git:diff', rootPath, filePath, cached),
     stage: (rootPath: string, filePath: string): Promise<void> =>
       ipcRenderer.invoke('git:stage', rootPath, filePath),
     commit: (rootPath: string, message: string): Promise<void> =>

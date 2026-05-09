@@ -55,7 +55,7 @@ declare global {
       }
       git: {
         status(rootPath: string): Promise<FileStatus[]>
-        diff(rootPath: string, filePath?: string): Promise<string>
+        diff(rootPath: string, filePath?: string, cached?: boolean): Promise<string>
         stage(rootPath: string, filePath: string): Promise<void>
         commit(rootPath: string, message: string): Promise<void>
       }

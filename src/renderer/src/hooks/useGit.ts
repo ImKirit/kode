@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import type { FileStatus } from '../types/electron.d'
 
 interface UseGitResult {
   files: FileStatus[]
@@ -43,8 +44,12 @@ export function useGit(rootPath: string | null): UseGitResult {
   const selectFile = useCallback(async (filePath: string) => {
     if (!rootPath) return
     setSelectedFile(filePath)
+    setError(null)
     try {
-      const d = await window.kode.git.diff(rootPath, filePath)
+      let d = await window.kode.git.diff(rootPath, filePath)
+      if (!d) {
+        d = await window.kode.git.diff(rootPath, filePath, true) // cached
+      }
       setDiff(d)
     } catch (e) {
       setDiff('')

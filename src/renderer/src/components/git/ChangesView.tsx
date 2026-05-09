@@ -138,7 +138,7 @@ export function ChangesView({ rootPath }: ChangesViewProps) {
         />
         <button
           onClick={commit}
-          disabled={!commitMessage.trim()}
+          disabled={!commitMessage.trim() || files.length === 0}
           aria-label="Commit changes"
           style={{
             background: 'var(--accent)', border: 'none', borderRadius: 4, padding: '4px 12px',

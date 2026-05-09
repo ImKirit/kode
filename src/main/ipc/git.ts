@@ -36,11 +36,13 @@ export function registerGitHandlers(): void {
     }
   })
 
-  ipcMain.handle('git:diff', async (_event, rootPath: string, filePath?: string): Promise<string> => {
+  ipcMain.handle('git:diff', async (_event, rootPath: string, filePath?: string, cached?: boolean): Promise<string> => {
     validateRootPath(rootPath)
     try {
       const git = simpleGit(rootPath)
-      return git.diff(filePath ? ['--', filePath] : [])
+      const args = cached ? ['--cached'] : []
+      if (filePath) args.push('--', filePath)
+      return await git.diff(args)
     } catch (e) {
       throw new Error(e instanceof Error ? e.message : String(e))
     }
