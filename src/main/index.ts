@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import { join } from 'path'
 import { registerIpcHandlers } from './ipc'
 import { killAllTerminals } from './ipc/terminal'
@@ -36,6 +36,7 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(null)
   registerIpcHandlers()
 
   // Register once — uses mainWindow reference, not captured win
