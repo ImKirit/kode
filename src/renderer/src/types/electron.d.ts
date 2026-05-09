@@ -1,5 +1,10 @@
 import type { FileEntry } from '.'
 
+export interface FileStatus {
+  path: string
+  status: string
+}
+
 export interface ProviderConfig {
   apiKey: string
   model: string
@@ -47,6 +52,12 @@ declare global {
         onDone(cb: () => void): () => void
         onError(cb: (message: string) => void): () => void
         onRateLimit(cb: (retryAfterMs: number) => void): () => void
+      }
+      git: {
+        status(rootPath: string): Promise<FileStatus[]>
+        diff(rootPath: string, filePath?: string): Promise<string>
+        stage(rootPath: string, filePath: string): Promise<void>
+        commit(rootPath: string, message: string): Promise<void>
       }
       setTitle(title: string): void
     }

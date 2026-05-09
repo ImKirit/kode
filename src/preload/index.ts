@@ -82,5 +82,15 @@ contextBridge.exposeInMainWorld('kode', {
       return () => ipcRenderer.removeListener('ai:rateLimit', listener)
     },
   },
+  git: {
+    status: (rootPath: string): Promise<Array<{ path: string; status: string }>> =>
+      ipcRenderer.invoke('git:status', rootPath),
+    diff: (rootPath: string, filePath?: string): Promise<string> =>
+      ipcRenderer.invoke('git:diff', rootPath, filePath),
+    stage: (rootPath: string, filePath: string): Promise<void> =>
+      ipcRenderer.invoke('git:stage', rootPath, filePath),
+    commit: (rootPath: string, message: string): Promise<void> =>
+      ipcRenderer.invoke('git:commit', rootPath, message)
+  },
   setTitle: (title: string): void => ipcRenderer.send('window:setTitle', title)
 })
