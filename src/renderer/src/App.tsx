@@ -1,5 +1,8 @@
 import { useProject } from './hooks/useProject'
+import { usePanelLayout } from './hooks/usePanelLayout'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { AppLayout } from './components/layout/AppLayout'
+import { ActivityBar } from './components/layout/ActivityBar'
 import { MenuBar } from './components/layout/MenuBar'
 import { FileTree } from './components/filetree/FileTree'
 import { EditorArea } from './components/editor/EditorArea'
@@ -19,13 +22,32 @@ export function App() {
     saveFile
   } = useProject()
 
+  const layout = usePanelLayout()
+
+  useKeyboardShortcuts({
+    onToggleSidebar: layout.toggleSidebar,
+    onToggleBottomPanel: layout.toggleBottomPanel,
+    onToggleAiPanel: layout.toggleAiPanel
+  })
+
   return (
     <AppLayout
+      layout={layout}
       menuBar={
         <MenuBar
           projectName={project.name}
           onOpenFolder={openFolder}
           onSave={() => activeFilePath && saveFile(activeFilePath)}
+        />
+      }
+      activityBar={
+        <ActivityBar
+          sidebarVisible={layout.sidebarVisible}
+          aiPanelVisible={layout.aiPanelVisible}
+          bottomPanelVisible={layout.bottomPanelVisible}
+          onToggleSidebar={layout.toggleSidebar}
+          onToggleAiPanel={layout.toggleAiPanel}
+          onToggleBottomPanel={layout.toggleBottomPanel}
         />
       }
       sidebar={

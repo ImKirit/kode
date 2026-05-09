@@ -1,20 +1,37 @@
-import { useState, useRef, useCallback } from 'react'
+import { useRef, useCallback } from 'react'
 import type { ReactNode } from 'react'
+import type { UsePanelLayoutResult } from '../../hooks/usePanelLayout'
 
 interface AppLayoutProps {
+  layout: UsePanelLayoutResult
   menuBar: ReactNode
+  activityBar: ReactNode
   sidebar: ReactNode
   editor: ReactNode
   aiPanel: ReactNode
   bottomPanel: ReactNode
 }
 
-export function AppLayout({ menuBar, sidebar, editor, aiPanel, bottomPanel }: AppLayoutProps) {
-  const [sidebarWidth, setSidebarWidth] = useState(220)
-  const [aiPanelWidth, setAiPanelWidth] = useState(360)
-  const [bottomHeight, setBottomHeight] = useState(220)
-  const [sidebarVisible] = useState(true)
-  const [bottomVisible] = useState(true)
+export function AppLayout({
+  layout,
+  menuBar,
+  activityBar,
+  sidebar,
+  editor,
+  aiPanel,
+  bottomPanel
+}: AppLayoutProps) {
+  const {
+    sidebarVisible,
+    aiPanelVisible,
+    bottomPanelVisible,
+    sidebarWidth,
+    aiPanelWidth,
+    bottomPanelHeight,
+    setSidebarWidth,
+    setAiPanelWidth,
+    setBottomPanelHeight
+  } = layout
 
   const dragging = useRef<'sidebar' | 'ai' | 'bottom' | null>(null)
   const startX = useRef(0)
@@ -31,9 +48,9 @@ export function AppLayout({ menuBar, sidebar, editor, aiPanel, bottomPanel }: Ap
     startVal.current =
       handle === 'sidebar' ? sidebarWidth :
       handle === 'ai' ? aiPanelWidth :
-      bottomHeight
+      bottomPanelHeight
     e.preventDefault()
-  }, [sidebarWidth, aiPanelWidth, bottomHeight])
+  }, [sidebarWidth, aiPanelWidth, bottomPanelHeight])
 
   const onMouseMove = useCallback((e: React.MouseEvent) => {
     if (!dragging.current) return
@@ -44,9 +61,9 @@ export function AppLayout({ menuBar, sidebar, editor, aiPanel, bottomPanel }: Ap
     } else if (dragging.current === 'ai') {
       setAiPanelWidth(Math.max(200, Math.min(640, startVal.current - dx)))
     } else if (dragging.current === 'bottom') {
-      setBottomHeight(Math.max(80, Math.min(640, startVal.current - dy)))
+      setBottomPanelHeight(Math.max(80, Math.min(640, startVal.current - dy)))
     }
-  }, [])
+  }, [setSidebarWidth, setAiPanelWidth, setBottomPanelHeight])
 
   const onMouseUp = useCallback(() => {
     dragging.current = null
@@ -70,6 +87,9 @@ export function AppLayout({ menuBar, sidebar, editor, aiPanel, bottomPanel }: Ap
       {menuBar}
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+        {/* Activity bar — always visible */}
+        {activityBar}
+
         {/* Sidebar */}
         {sidebarVisible && (
           <>
@@ -100,7 +120,7 @@ export function AppLayout({ menuBar, sidebar, editor, aiPanel, bottomPanel }: Ap
             {editor}
           </div>
 
-          {bottomVisible && (
+          {bottomPanelVisible && (
             <>
               <div
                 onMouseDown={e => onMouseDown('bottom', e)}
@@ -109,8 +129,8 @@ export function AppLayout({ menuBar, sidebar, editor, aiPanel, bottomPanel }: Ap
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               />
               <div style={{
-                height: bottomHeight,
-                minHeight: bottomHeight,
+                height: bottomPanelHeight,
+                minHeight: bottomPanelHeight,
                 background: 'var(--bg-secondary)',
                 borderTop: '1px solid var(--border)',
                 overflow: 'hidden',
@@ -123,22 +143,26 @@ export function AppLayout({ menuBar, sidebar, editor, aiPanel, bottomPanel }: Ap
         </div>
 
         {/* AI panel resize handle */}
-        <div
-          onMouseDown={e => onMouseDown('ai', e)}
-          style={handleStyle('col-resize')}
-          onMouseEnter={e => (e.currentTarget.style.background = 'var(--border-light)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-        />
+        {aiPanelVisible && (
+          <div
+            onMouseDown={e => onMouseDown('ai', e)}
+            style={handleStyle('col-resize')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border-light)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          />
+        )}
 
         {/* AI Panel */}
-        <div style={{
-          width: aiPanelWidth,
-          minWidth: aiPanelWidth,
-          overflow: 'hidden',
-          flexShrink: 0
-        }}>
-          {aiPanel}
-        </div>
+        {aiPanelVisible && (
+          <div style={{
+            width: aiPanelWidth,
+            minWidth: aiPanelWidth,
+            overflow: 'hidden',
+            flexShrink: 0
+          }}>
+            {aiPanel}
+          </div>
+        )}
       </div>
     </div>
   )
