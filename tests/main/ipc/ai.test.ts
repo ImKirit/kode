@@ -45,6 +45,7 @@ describe('registerAiHandlers — streaming', () => {
     mockWebContentsSend.mockClear()
     mockStreamOn.mockClear()
     mockStreamAbort.mockClear()
+    mockIsDestroyed.mockReturnValue(false)
 
     // Each test gets a fresh stream mock
     mockFinalMessage.mockResolvedValue({})
@@ -119,8 +120,7 @@ describe('registerAiHandlers — streaming', () => {
     handler({ sender: {} }, [{ role: 'user', content: 'hi' }], 'sk-test')
 
     // finalMessage resolves → ai:done
-    await Promise.resolve() // flush microtask queue
-    await Promise.resolve()
+    await new Promise(resolve => setTimeout(resolve, 0))
     expect(mockWebContentsSend).toHaveBeenCalledWith('ai:done')
   })
 
@@ -135,8 +135,7 @@ describe('registerAiHandlers — streaming', () => {
     const handler = getHandle('ai:sendMessage')!
     handler({ sender: {} }, [{ role: 'user', content: 'hi' }], 'sk-bad')
 
-    await Promise.resolve()
-    await Promise.resolve()
+    await new Promise(resolve => setTimeout(resolve, 0))
     expect(mockWebContentsSend).toHaveBeenCalledWith('ai:error', 'Invalid API key')
   })
 
@@ -156,8 +155,7 @@ describe('registerAiHandlers — streaming', () => {
     const stopHandler = getOn('ai:stop')!
     stopHandler()
 
-    await Promise.resolve()
-    await Promise.resolve()
+    await new Promise(resolve => setTimeout(resolve, 0))
     expect(mockWebContentsSend).toHaveBeenCalledWith('ai:done')
     expect(mockWebContentsSend).not.toHaveBeenCalledWith('ai:error', expect.any(String))
   })
