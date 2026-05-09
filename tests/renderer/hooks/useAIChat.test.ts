@@ -77,8 +77,7 @@ describe('useAIChat', () => {
     act(() => { result.current.setApiKey('sk-test') })
     await act(async () => { await result.current.sendMessage('Hi') })
     expect(mockSendMessage).toHaveBeenCalledWith(
-      [{ role: 'user', content: 'Hi' }],
-      'sk-test'
+      [{ role: 'user', content: 'Hi' }]
     )
   })
 

@@ -59,7 +59,7 @@ export function useAIChat(): UseAIChatResult {
   }, [])
 
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || isStreamingRef.current || !apiKeyRef.current.trim()) return
+    if (!text.trim() || isStreamingRef.current) return
     const trimmed = text.trim()
     const userMsg: ChatMessage = { role: 'user', content: trimmed }
     const assistantMsg: ChatMessage = { role: 'assistant', content: '' }
@@ -69,8 +69,7 @@ export function useAIChat(): UseAIChatResult {
     setIsStreaming(true)
     setError(null)
     await window.kode.ai.sendMessage(
-      [...prevMessages, userMsg].map(m => ({ role: m.role, content: m.content })),
-      apiKeyRef.current
+      [...prevMessages, userMsg].map(m => ({ role: m.role, content: m.content }))
     )
   }, [])
 

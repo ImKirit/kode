@@ -1,5 +1,18 @@
 import type { FileEntry } from '.'
 
+export interface ProviderConfig {
+  apiKey: string
+  model: string
+}
+
+export interface AppSettings {
+  activeProvider: 'anthropic' | 'openai'
+  providers: {
+    anthropic: ProviderConfig
+    openai: ProviderConfig
+  }
+}
+
 declare global {
   interface Window {
     kode: {
@@ -18,10 +31,13 @@ declare global {
         onData(termId: string, cb: (data: string) => void): () => void
         onExit(termId: string, cb: () => void): () => void
       }
+      settings: {
+        get(): Promise<AppSettings>
+        set(settings: AppSettings): Promise<void>
+      }
       ai: {
         sendMessage(
-          messages: Array<{ role: 'user' | 'assistant'; content: string }>,
-          apiKey: string
+          messages: Array<{ role: 'user' | 'assistant'; content: string }>
         ): Promise<void>
         stop(): void
         onToken(cb: (text: string) => void): () => void

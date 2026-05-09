@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import type { FileEntry } from '../renderer/src/types'
+import type { AppSettings } from '../main/ipc/settings'
 
 contextBridge.exposeInMainWorld('kode', {
   platform: process.platform,
@@ -38,12 +39,17 @@ contextBridge.exposeInMainWorld('kode', {
       return () => ipcRenderer.removeListener('terminal:exit', listener)
     }
   },
+  settings: {
+    get: (): Promise<AppSettings> =>
+      ipcRenderer.invoke('settings:get'),
+    set: (settings: AppSettings): Promise<void> =>
+      ipcRenderer.invoke('settings:set', settings)
+  },
   ai: {
     sendMessage: (
-      messages: Array<{ role: 'user' | 'assistant'; content: string }>,
-      apiKey: string
+      messages: Array<{ role: 'user' | 'assistant'; content: string }>
     ): Promise<void> =>
-      ipcRenderer.invoke('ai:sendMessage', messages, apiKey),
+      ipcRenderer.invoke('ai:sendMessage', messages),
     stop: (): void =>
       ipcRenderer.send('ai:stop'),
     onToken: (cb: (text: string) => void): (() => void) => {
