@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useAIChat } from '../../../src/renderer/src/hooks/useAIChat'
+import { useAIChat } from '@renderer/hooks/useAIChat'
 
-// Callbacks captured from window.kode.ai.on* calls
 let onTokenCb: (text: string) => void = () => {}
 let onDoneCb: () => void = () => {}
 let onErrorCb: (msg: string) => void = () => {}
@@ -16,8 +15,6 @@ beforeEach(() => {
   onErrorCb = () => {}
   mockSendMessage.mockClear()
   mockStop.mockClear()
-  localStorage.clear()
-  localStorage.setItem('kode.apiKey', 'sk-test')
 
   Object.defineProperty(window, 'kode', {
     value: {
@@ -28,6 +25,7 @@ beforeEach(() => {
         onData: vi.fn().mockReturnValue(() => {}),
         onExit: vi.fn().mockReturnValue(() => {})
       },
+      settings: { get: vi.fn().mockResolvedValue({}), set: vi.fn().mockResolvedValue(undefined) },
       ai: {
         sendMessage: mockSendMessage,
         stop: mockStop,
@@ -50,19 +48,6 @@ describe('useAIChat', () => {
     expect(result.current.error).toBeNull()
   })
 
-  it('loads apiKey from localStorage on init', () => {
-    localStorage.setItem('kode.apiKey', 'sk-stored')
-    const { result } = renderHook(() => useAIChat())
-    expect(result.current.apiKey).toBe('sk-stored')
-  })
-
-  it('setApiKey saves to localStorage and updates state', () => {
-    const { result } = renderHook(() => useAIChat())
-    act(() => { result.current.setApiKey('sk-new') })
-    expect(result.current.apiKey).toBe('sk-new')
-    expect(localStorage.getItem('kode.apiKey')).toBe('sk-new')
-  })
-
   it('sendMessage appends user + empty assistant message, sets isStreaming', async () => {
     const { result } = renderHook(() => useAIChat())
     await act(async () => { await result.current.sendMessage('Hello') })
@@ -72,13 +57,10 @@ describe('useAIChat', () => {
     expect(result.current.isStreaming).toBe(true)
   })
 
-  it('sendMessage calls window.kode.ai.sendMessage with correct args', async () => {
+  it('sendMessage calls window.kode.ai.sendMessage with messages (no apiKey)', async () => {
     const { result } = renderHook(() => useAIChat())
-    act(() => { result.current.setApiKey('sk-test') })
     await act(async () => { await result.current.sendMessage('Hi') })
-    expect(mockSendMessage).toHaveBeenCalledWith(
-      [{ role: 'user', content: 'Hi' }]
-    )
+    expect(mockSendMessage).toHaveBeenCalledWith([{ role: 'user', content: 'Hi' }])
   })
 
   it('token events append text to last assistant message', async () => {
@@ -99,9 +81,9 @@ describe('useAIChat', () => {
   it('error event sets isStreaming false and error message', async () => {
     const { result } = renderHook(() => useAIChat())
     await act(async () => { await result.current.sendMessage('Hello') })
-    act(() => { onErrorCb('Invalid API key') })
+    act(() => { onErrorCb('No API key') })
     expect(result.current.isStreaming).toBe(false)
-    expect(result.current.error).toBe('Invalid API key')
+    expect(result.current.error).toBe('No API key')
   })
 
   it('stop calls window.kode.ai.stop and sets isStreaming false', async () => {

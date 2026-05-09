@@ -9,8 +9,6 @@ export interface UseAIChatResult {
   messages: ChatMessage[]
   isStreaming: boolean
   error: string | null
-  apiKey: string
-  setApiKey(key: string): void
   sendMessage(text: string): Promise<void>
   stop(): void
   clearMessages(): void
@@ -20,17 +18,12 @@ export function useAIChat(): UseAIChatResult {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [apiKey, setApiKeyState] = useState<string>(
-    () => localStorage.getItem('kode.apiKey') ?? ''
-  )
 
   const messagesRef = useRef<ChatMessage[]>([])
   const isStreamingRef = useRef(false)
-  const apiKeyRef = useRef(apiKey)
 
   useEffect(() => { messagesRef.current = messages }, [messages])
   useEffect(() => { isStreamingRef.current = isStreaming }, [isStreaming])
-  useEffect(() => { apiKeyRef.current = apiKey }, [apiKey])
 
   useEffect(() => {
     const unToken = window.kode.ai.onToken((text) => {
@@ -51,11 +44,6 @@ export function useAIChat(): UseAIChatResult {
       setError(msg)
     })
     return () => { unToken(); unDone(); unError() }
-  }, [])
-
-  const setApiKey = useCallback((key: string) => {
-    localStorage.setItem('kode.apiKey', key)
-    setApiKeyState(key)
   }, [])
 
   const sendMessage = useCallback(async (text: string) => {
@@ -83,5 +71,5 @@ export function useAIChat(): UseAIChatResult {
     setError(null)
   }, [])
 
-  return { messages, isStreaming, error, apiKey, setApiKey, sendMessage, stop, clearMessages }
+  return { messages, isStreaming, error, sendMessage, stop, clearMessages }
 }
