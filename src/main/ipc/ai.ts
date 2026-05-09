@@ -50,6 +50,9 @@ export function registerAiHandlers(): void {
           currentStream = null
           if (err instanceof Error && err.name === 'AbortError') {
             send('ai:done')
+          } else if ((err as { status?: number }).status === 429) {
+            const retryAfter = (err as { headers?: Record<string, string> }).headers?.['retry-after']
+            send('ai:rateLimit', retryAfter ? parseInt(retryAfter, 10) * 1000 : 60000)
           } else {
             send('ai:error', err instanceof Error ? err.message : String(err))
           }
@@ -75,6 +78,9 @@ export function registerAiHandlers(): void {
         openaiAbortController = null
         if (err instanceof Error && err.name === 'AbortError') {
           send('ai:done')
+        } else if ((err as { status?: number }).status === 429) {
+          const retryAfter = (err as { headers?: Record<string, string> }).headers?.['retry-after']
+          send('ai:rateLimit', retryAfter ? parseInt(retryAfter, 10) * 1000 : 60000)
         } else {
           send('ai:error', err instanceof Error ? err.message : String(err))
         }

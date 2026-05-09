@@ -66,7 +66,12 @@ contextBridge.exposeInMainWorld('kode', {
       const listener = (_event: IpcRendererEvent, message: string) => cb(message)
       ipcRenderer.on('ai:error', listener)
       return () => ipcRenderer.removeListener('ai:error', listener)
-    }
+    },
+    onRateLimit: (cb: (retryAfterMs: number) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, ms: number) => cb(ms)
+      ipcRenderer.on('ai:rateLimit', listener)
+      return () => ipcRenderer.removeListener('ai:rateLimit', listener)
+    },
   },
   setTitle: (title: string): void => ipcRenderer.send('window:setTitle', title)
 })

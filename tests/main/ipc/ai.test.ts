@@ -209,4 +209,37 @@ describe('registerAiHandlers — M4', () => {
     textCb?.('hello')
     expect(mockWebContentsSend).not.toHaveBeenCalled()
   })
+
+  it('sends ai:rateLimit (not ai:error) when Anthropic returns 429', async () => {
+    const rateLimitErr = Object.assign(new Error('Rate limited'), { status: 429 })
+    mockFinalMessage.mockRejectedValue(rateLimitErr)
+    mockMessagesStream.mockReturnValue({ on: mockStreamOn, abort: mockStreamAbort, finalMessage: mockFinalMessage })
+    const { registerAiHandlers, _resetRegistered } = await import('../../../src/main/ipc/ai')
+    _resetRegistered()
+    registerAiHandlers()
+    const handler = getHandle('ai:sendMessage')!
+    handler({ sender: {} }, [{ role: 'user', content: 'hi' }])
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(mockWebContentsSend).toHaveBeenCalledWith('ai:rateLimit', expect.any(Number))
+    expect(mockWebContentsSend).not.toHaveBeenCalledWith('ai:error', expect.anything())
+  })
+
+  it('sends ai:rateLimit (not ai:error) when OpenAI returns 429', async () => {
+    mockLoadSettings.mockReturnValue({
+      activeProvider: 'openai',
+      providers: {
+        anthropic: { apiKey: 'sk-ant', model: 'claude-sonnet-4-6' },
+        openai: { apiKey: 'sk-openai-test', model: 'gpt-4o' }
+      }
+    })
+    const rateLimitErr = Object.assign(new Error('Rate limited'), { status: 429 })
+    mockChatCompletionsCreate.mockRejectedValue(rateLimitErr)
+    const { registerAiHandlers, _resetRegistered } = await import('../../../src/main/ipc/ai')
+    _resetRegistered()
+    registerAiHandlers()
+    const handler = getHandle('ai:sendMessage')!
+    await handler({ sender: {} }, [{ role: 'user', content: 'hi' }])
+    expect(mockWebContentsSend).toHaveBeenCalledWith('ai:rateLimit', expect.any(Number))
+    expect(mockWebContentsSend).not.toHaveBeenCalledWith('ai:error', expect.anything())
+  })
 })

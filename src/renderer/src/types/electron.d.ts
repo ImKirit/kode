@@ -43,6 +43,7 @@ declare global {
         onToken(cb: (text: string) => void): () => void
         onDone(cb: () => void): () => void
         onError(cb: (message: string) => void): () => void
+        onRateLimit(cb: (retryAfterMs: number) => void): () => void
       }
       setTitle(title: string): void
     }
