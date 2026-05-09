@@ -6,6 +6,7 @@ import { loadSettings } from './settings'
 type ChatMessage = { role: 'user' | 'assistant'; content: string }
 
 let currentStream: ReturnType<Anthropic['messages']['stream']> | null = null
+let openaiAbortController: AbortController | null = null
 let registered = false
 
 export function _resetRegistered(): void {
@@ -19,6 +20,8 @@ export function registerAiHandlers(): void {
   ipcMain.handle('ai:sendMessage', async (event, messages: ChatMessage[]) => {
     currentStream?.abort()
     currentStream = null
+    openaiAbortController?.abort()
+    openaiAbortController = null
 
     const settings = loadSettings()
     const provider = settings.activeProvider
@@ -53,27 +56,38 @@ export function registerAiHandlers(): void {
         })
     }
 
-    if (provider === 'openai') {
+    else if (provider === 'openai') {
       const client = new OpenAI({ apiKey })
+      openaiAbortController = new AbortController()
       try {
         const stream = await client.chat.completions.create({
           model,
           messages,
           stream: true
-        })
+        }, { signal: openaiAbortController.signal })
         for await (const chunk of stream) {
           const text = chunk.choices[0]?.delta?.content ?? ''
           if (text) send('ai:token', text)
         }
+        openaiAbortController = null
         send('ai:done')
       } catch (err: unknown) {
-        send('ai:error', err instanceof Error ? err.message : String(err))
+        openaiAbortController = null
+        if (err instanceof Error && err.name === 'AbortError') {
+          send('ai:done')
+        } else {
+          send('ai:error', err instanceof Error ? err.message : String(err))
+        }
       }
+    } else {
+      send('ai:error', `Unknown provider: ${provider}`)
     }
   })
 
   ipcMain.on('ai:stop', () => {
     currentStream?.abort()
     currentStream = null
+    openaiAbortController?.abort()
+    openaiAbortController = null
   })
 }

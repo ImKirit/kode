@@ -86,7 +86,11 @@ function saveSettings(settings: AppSettings): void {
       }
     }
   }
-  fs.writeFileSync(settingsPath(), JSON.stringify(stored, null, 2), 'utf8')
+  try {
+    fs.writeFileSync(settingsPath(), JSON.stringify(stored, null, 2), 'utf8')
+  } catch {
+    // Disk write failed — in-memory state remains unchanged
+  }
 }
 
 let registered = false

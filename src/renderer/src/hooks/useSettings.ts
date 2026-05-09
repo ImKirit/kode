@@ -27,10 +27,9 @@ export function useSettings(): UseSettingsResult {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    window.kode.settings.get().then(s => {
-      setSettingsState(s)
-      setLoading(false)
-    })
+    window.kode.settings.get()
+      .then(s => { setSettingsState(s); setLoading(false) })
+      .catch(() => setLoading(false))
   }, [])
 
   const updateSettings = useCallback(async (next: AppSettings) => {
@@ -42,7 +41,7 @@ export function useSettings(): UseSettingsResult {
     setSettingsState(prev => {
       if (!prev) return prev
       const next = { ...prev, activeProvider: provider }
-      window.kode.settings.set(next)
+      window.kode.settings.set(next).catch(() => {})
       return next
     })
   }, [])
@@ -57,7 +56,7 @@ export function useSettings(): UseSettingsResult {
           [provider]: { ...prev.providers[provider], apiKey }
         }
       }
-      window.kode.settings.set(next)
+      window.kode.settings.set(next).catch(() => {})
       return next
     })
   }, [])
@@ -72,7 +71,7 @@ export function useSettings(): UseSettingsResult {
           [provider]: { ...prev.providers[provider], model }
         }
       }
-      window.kode.settings.set(next)
+      window.kode.settings.set(next).catch(() => {})
       return next
     })
   }, [])
