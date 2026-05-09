@@ -52,7 +52,7 @@ contextBridge.exposeInMainWorld('kode', {
       return () => ipcRenderer.removeListener('ai:token', listener)
     },
     onDone: (cb: () => void): (() => void) => {
-      const listener = () => cb()
+      const listener = (_event: IpcRendererEvent) => cb()
       ipcRenderer.on('ai:done', listener)
       return () => ipcRenderer.removeListener('ai:done', listener)
     },
