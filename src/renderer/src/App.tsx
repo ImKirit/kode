@@ -1,6 +1,7 @@
 import { useProject } from './hooks/useProject'
 import { usePanelLayout } from './hooks/usePanelLayout'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { useAutoFollow } from './hooks/useAutoFollow'
 import { AppLayout } from './components/layout/AppLayout'
 import { ActivityBar } from './components/layout/ActivityBar'
 import { MenuBar } from './components/layout/MenuBar'
@@ -23,6 +24,14 @@ export function App() {
   } = useProject()
 
   const layout = usePanelLayout()
+
+  const autoFollow = useAutoFollow({
+    rootPath: project.rootPath,
+    openFiles,
+    openFile,
+    updateFileContent,
+    setActiveFile
+  })
 
   useKeyboardShortcuts({
     onToggleSidebar: layout.toggleSidebar,
@@ -67,7 +76,12 @@ export function App() {
           onSave={saveFile}
         />
       }
-      aiPanel={<AIChatPanel />}
+      aiPanel={
+        <AIChatPanel
+          autoFollowEnabled={autoFollow.enabled}
+          onToggleAutoFollow={autoFollow.toggle}
+        />
+      }
       bottomPanel={<TerminalPanel />}
     />
   )

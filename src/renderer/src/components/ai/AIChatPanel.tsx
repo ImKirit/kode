@@ -1,12 +1,17 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Trash2, Settings } from 'lucide-react'
+import { Trash2, Settings, Eye } from 'lucide-react'
 import { useScheduler } from '../../hooks/useScheduler'
 import { useSettings } from '../../hooks/useSettings'
 import { ChatMessage } from './ChatMessage'
 import { ProviderSettings } from './ProviderSettings'
 import { QueueDisplay } from './QueueDisplay'
 
-export function AIChatPanel() {
+interface AIChatPanelProps {
+  autoFollowEnabled: boolean
+  onToggleAutoFollow(): void
+}
+
+export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow }: AIChatPanelProps) {
   const {
     messages, isStreaming, error, retryCountdown, queue,
     sendOrEnqueue, stop, clearMessages, removeFromQueue, clearQueue
@@ -80,6 +85,23 @@ export function AIChatPanel() {
               {modelLabel}
             </span>
           )}
+          <button
+            onClick={onToggleAutoFollow}
+            aria-label="Auto Follow"
+            aria-pressed={autoFollowEnabled}
+            title={autoFollowEnabled ? 'Auto Follow: on' : 'Auto Follow: off'}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 4,
+              color: autoFollowEnabled ? 'var(--accent)' : 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <Eye size={13} />
+          </button>
           <button
             onClick={() => setShowSettings(v => !v)}
             aria-label="Settings"

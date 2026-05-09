@@ -6,6 +6,7 @@ const mockStop = vi.hoisted(() => vi.fn())
 const mockClearMessages = vi.hoisted(() => vi.fn())
 const mockRemoveFromQueue = vi.hoisted(() => vi.fn())
 const mockClearQueue = vi.hoisted(() => vi.fn())
+const mockOnToggleAutoFollow = vi.hoisted(() => vi.fn())
 const mockUseScheduler = vi.hoisted(() => vi.fn())
 
 const mockSetActiveProvider = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
@@ -84,110 +85,111 @@ beforeEach(() => {
   mockSendOrEnqueue.mockClear()
   mockStop.mockClear()
   mockClearMessages.mockClear()
+  mockOnToggleAutoFollow.mockClear()
   mockUseScheduler.mockReturnValue(defaultSchedulerState())
   mockUseSettings.mockReturnValue(defaultSettingsState())
 })
 
 describe('AIChatPanel', () => {
   it('renders the AI Agent header', () => {
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     expect(screen.getByText('AI Agent')).toBeInTheDocument()
   })
 
   it('shows settings gear button', () => {
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     expect(screen.getByRole('button', { name: /settings/i })).toBeInTheDocument()
   })
 
   it('shows model badge with current provider and model', () => {
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     expect(screen.getByText(/claude-sonnet/i)).toBeInTheDocument()
   })
 
   it('renders the message input textarea', () => {
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     expect(screen.getByPlaceholderText('Message...')).toBeInTheDocument()
   })
 
   it('calls sendOrEnqueue when Send button is clicked with non-empty input', () => {
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     fireEvent.change(screen.getByPlaceholderText('Message...'), { target: { value: 'Hello' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
     expect(mockSendOrEnqueue).toHaveBeenCalledWith('Hello')
   })
 
   it('does not call sendOrEnqueue when input is empty', () => {
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
     expect(mockSendOrEnqueue).not.toHaveBeenCalled()
   })
 
   it('shows Stop button when streaming', () => {
     mockUseScheduler.mockReturnValue(defaultSchedulerState({ isStreaming: true }))
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     expect(screen.getByRole('button', { name: /stop/i })).toBeInTheDocument()
   })
 
   it('shows Stop button when retryCountdown is active', () => {
     mockUseScheduler.mockReturnValue(defaultSchedulerState({ retryCountdown: 30 }))
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     expect(screen.getByRole('button', { name: /stop/i })).toBeInTheDocument()
   })
 
   it('textarea is NOT disabled when retryCountdown is active', () => {
     mockUseScheduler.mockReturnValue(defaultSchedulerState({ retryCountdown: 30 }))
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     expect(screen.getByPlaceholderText('Message...')).not.toBeDisabled()
   })
 
   it('textarea is disabled when streaming', () => {
     mockUseScheduler.mockReturnValue(defaultSchedulerState({ isStreaming: true }))
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     expect(screen.getByPlaceholderText('Message...')).toBeDisabled()
   })
 
   it('calls stop() when Stop button is clicked', () => {
     mockUseScheduler.mockReturnValue(defaultSchedulerState({ isStreaming: true }))
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     fireEvent.click(screen.getByRole('button', { name: /stop/i }))
     expect(mockStop).toHaveBeenCalled()
   })
 
   it('renders error message when error is set', () => {
     mockUseScheduler.mockReturnValue(defaultSchedulerState({ error: 'No API key configured' }))
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     expect(screen.getByText('No API key configured')).toBeInTheDocument()
   })
 
   it('opens ProviderSettings when gear is clicked', () => {
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     fireEvent.click(screen.getByRole('button', { name: /settings/i }))
     expect(screen.getByTestId('provider-settings')).toBeInTheDocument()
   })
 
   it('closes ProviderSettings when close is called from within it', () => {
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     fireEvent.click(screen.getByRole('button', { name: /settings/i }))
     fireEvent.click(screen.getByText('Close Settings'))
     expect(screen.queryByTestId('provider-settings')).not.toBeInTheDocument()
   })
 
   it('sends message on Enter key', () => {
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     fireEvent.change(screen.getByPlaceholderText('Message...'), { target: { value: 'Hello' } })
     fireEvent.keyDown(screen.getByPlaceholderText('Message...'), { key: 'Enter', shiftKey: false })
     expect(mockSendOrEnqueue).toHaveBeenCalledWith('Hello')
   })
 
   it('does not send on Shift+Enter', () => {
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     fireEvent.change(screen.getByPlaceholderText('Message...'), { target: { value: 'Hello' } })
     fireEvent.keyDown(screen.getByPlaceholderText('Message...'), { key: 'Enter', shiftKey: true })
     expect(mockSendOrEnqueue).not.toHaveBeenCalled()
   })
 
   it('renders QueueDisplay', () => {
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     expect(screen.getByTestId('queue-display-mock')).toBeInTheDocument()
   })
 
@@ -197,10 +199,23 @@ describe('AIChatPanel', () => {
       removeFromQueue: mockRemoveFromQueue,
       clearQueue: mockClearQueue
     }))
-    render(<AIChatPanel />)
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     fireEvent.click(screen.getByRole('button', { name: 'mock-remove' }))
     expect(mockRemoveFromQueue).toHaveBeenCalledWith(0)
     fireEvent.click(screen.getByRole('button', { name: 'mock-clear' }))
     expect(mockClearQueue).toHaveBeenCalled()
+  })
+
+  it('renders Auto Follow button with aria-pressed=false when disabled', () => {
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
+    const btn = screen.getByRole('button', { name: 'Auto Follow' })
+    expect(btn).toBeInTheDocument()
+    expect(btn).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('calls onToggleAutoFollow when Auto Follow button is clicked', () => {
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Auto Follow' }))
+    expect(mockOnToggleAutoFollow).toHaveBeenCalledTimes(1)
   })
 })
