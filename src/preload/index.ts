@@ -13,7 +13,16 @@ contextBridge.exposeInMainWorld('kode', {
     writeFile: (filePath: string, content: string): Promise<void> =>
       ipcRenderer.invoke('fs:writeFile', filePath, content),
     openFolder: (): Promise<string | null> =>
-      ipcRenderer.invoke('fs:openFolder')
+      ipcRenderer.invoke('fs:openFolder'),
+    watchRoot: (rootPath: string): Promise<void> =>
+      ipcRenderer.invoke('fs:watchRoot', rootPath),
+    unwatchRoot: (): void =>
+      ipcRenderer.send('fs:unwatchRoot'),
+    onFileChange: (cb: (filePath: string, content: string) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, filePath: string, content: string) => cb(filePath, content)
+      ipcRenderer.on('fs:fileChange', listener)
+      return () => ipcRenderer.removeListener('fs:fileChange', listener)
+    }
   },
   terminal: {
     spawn: (cols: number, rows: number): Promise<string> =>

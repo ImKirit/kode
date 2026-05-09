@@ -22,6 +22,9 @@ declare global {
         readFile(filePath: string): Promise<string>
         writeFile(filePath: string, content: string): Promise<void>
         openFolder(): Promise<string | null>
+        watchRoot(rootPath: string): Promise<void>
+        unwatchRoot(): void
+        onFileChange(cb: (filePath: string, content: string) => void): () => void
       }
       terminal: {
         spawn(cols: number, rows: number): Promise<string>

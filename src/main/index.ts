@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { registerIpcHandlers } from './ipc'
 import { killAllTerminals } from './ipc/terminal'
+import { stopWatcher } from './ipc/watcher'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -55,4 +56,5 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   killAllTerminals()
+  stopWatcher()
 })

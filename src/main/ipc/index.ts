@@ -8,6 +8,7 @@ import {
 import { registerTerminalHandlers } from './terminal'
 import { registerAiHandlers } from './ai'
 import { registerSettingsHandlers } from './settings'
+import { registerWatcherHandlers } from './watcher'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('fs:readDir', (_event, dirPath: string) => readDirHandler(dirPath))
@@ -19,4 +20,5 @@ export function registerIpcHandlers(): void {
   registerTerminalHandlers()
   registerAiHandlers()
   registerSettingsHandlers()
+  registerWatcherHandlers()
 }
