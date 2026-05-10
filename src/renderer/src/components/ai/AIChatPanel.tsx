@@ -86,6 +86,7 @@ export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow }: AIChatPan
             </span>
           )}
           <button
+            data-flat
             onClick={onToggleAutoFollow}
             aria-label="Auto Follow"
             aria-pressed={autoFollowEnabled}
@@ -103,6 +104,7 @@ export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow }: AIChatPan
             <Eye size={13} />
           </button>
           <button
+            data-flat
             onClick={() => setShowSettings(v => !v)}
             aria-label="Settings"
             title="Provider settings"
@@ -119,6 +121,7 @@ export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow }: AIChatPan
             <Settings size={13} />
           </button>
           <button
+            data-flat
             onClick={clearMessages}
             title="Clear conversation"
             aria-label="Clear"
@@ -220,7 +223,7 @@ export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow }: AIChatPan
             flex: 1,
             background: 'var(--bg-primary)',
             border: '1px solid var(--border)',
-            borderRadius: 6,
+            borderRadius: 'var(--radius-md)',
             padding: '6px 10px',
             fontSize: 13,
             color: 'var(--text-primary)',
@@ -234,6 +237,7 @@ export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow }: AIChatPan
         />
         {isBlocked ? (
           <button
+            data-flat
             onClick={stop}
             aria-label="Stop"
             style={{

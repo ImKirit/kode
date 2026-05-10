@@ -10,20 +10,21 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
   return (
     <div style={{
       display: 'flex',
-      justifyContent: isUser ? 'flex-end' : 'flex-start',
-      marginBottom: 10
+      flexDirection: 'column',
+      gap: 8
     }}>
       <div style={{
-        maxWidth: '85%',
-        padding: '8px 12px',
-        borderRadius: isUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
-        background: isUser ? 'var(--accent)' : 'var(--bg-primary)',
-        color: isUser ? '#fff' : 'var(--text-primary)',
+        maxWidth: '80%',
+        padding: '10px 14px',
+        borderRadius: 'var(--radius-lg)',
+        background: isUser ? 'var(--accent)' : 'var(--bg-sidebar)',
+        color: isUser ? '#ffffff' : 'var(--text-primary)',
         fontSize: 13,
         lineHeight: 1.6,
         whiteSpace: 'pre-wrap',
         wordBreak: 'break-word',
-        border: isUser ? 'none' : '1px solid var(--border)'
+        border: isUser ? 'none' : '1px solid var(--border)',
+        alignSelf: isUser ? 'flex-end' : 'flex-start'
       }}>
         {content}
         {!isUser && isStreaming && (

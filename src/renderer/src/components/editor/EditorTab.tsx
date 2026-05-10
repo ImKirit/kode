@@ -22,12 +22,14 @@ export function EditorTab({ name, active, dirty, onActivate, onClose }: EditorTa
         background: active ? 'var(--bg-tab-active)' : 'var(--bg-tab-inactive)',
         borderRight: '1px solid var(--border)',
         borderBottom: active ? '2px solid var(--accent)' : '2px solid transparent',
+        borderRadius: 'var(--radius-sm) var(--radius-sm) 0 0',
         color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
         cursor: 'pointer',
         userSelect: 'none',
         whiteSpace: 'nowrap',
         fontSize: 13,
-        flexShrink: 0
+        flexShrink: 0,
+        transition: 'background var(--transition-fast)'
       }}
     >
       {dirty && (
@@ -44,6 +46,7 @@ export function EditorTab({ name, active, dirty, onActivate, onClose }: EditorTa
       )}
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
       <button
+        data-flat
         aria-label="close tab"
         onClick={e => { e.stopPropagation(); onClose() }}
         style={{

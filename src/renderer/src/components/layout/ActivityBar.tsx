@@ -19,6 +19,7 @@ interface BtnProps {
 function ActivityBarButton({ icon, active, label, onClick }: BtnProps) {
   return (
     <button
+      data-flat
       onClick={onClick}
       aria-label={label}
       aria-pressed={active}
@@ -27,15 +28,16 @@ function ActivityBarButton({ icon, active, label, onClick }: BtnProps) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: 40,
-        height: 40,
-        background: 'none',
+        width: 36,
+        height: 36,
+        background: active ? 'var(--accent)' : 'transparent',
         border: 'none',
         cursor: 'pointer',
-        color: active ? 'var(--text-primary)' : 'var(--text-muted)',
-        borderLeft: active ? '2px solid var(--accent)' : '2px solid transparent',
+        color: active ? '#ffffff' : 'var(--text-muted)',
+        borderRadius: 'var(--radius-md)',
         padding: 0,
-        boxSizing: 'border-box' as const
+        boxSizing: 'border-box' as const,
+        transition: 'background var(--transition-fast), color var(--transition-fast)'
       }}
     >
       {icon}
@@ -57,7 +59,7 @@ export function ActivityBar({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        width: 40,
+        width: 48,
         background: 'var(--bg-sidebar)',
         borderRight: '1px solid var(--border)',
         flexShrink: 0,
