@@ -10,12 +10,51 @@ export interface ProviderConfig {
   model: string
 }
 
+export interface McpServerConfig {
+  id: string
+  name: string
+  type: 'stdio' | 'http'
+  command?: string
+  args?: string[]
+  env?: Record<string, string>
+  url?: string
+}
+
+export interface McpTool {
+  serverId: string
+  name: string
+  description: string
+  inputSchema: { type: 'object'; properties?: Record<string, unknown>; required?: string[] }
+}
+
+export interface ToolCallEvent {
+  callId: string
+  toolName: string
+  serverId: string
+  args: Record<string, unknown>
+}
+
+export interface ToolResultEvent {
+  callId: string
+  result: string
+  isError: boolean
+}
+
+export interface ToolApprovalRequest {
+  callId: string
+  toolName: string
+  serverId: string
+  args: Record<string, unknown>
+}
+
 export interface AppSettings {
   activeProvider: 'anthropic' | 'openai'
   providers: {
     anthropic: ProviderConfig
     openai: ProviderConfig
   }
+  mcpServers: McpServerConfig[]
+  mcpPermission: 'ask' | 'full'
 }
 
 declare global {
@@ -45,13 +84,19 @@ declare global {
       }
       ai: {
         sendMessage(
-          messages: Array<{ role: 'user' | 'assistant'; content: string }>
+          messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+          systemPrompt?: string
         ): Promise<void>
         stop(): void
         onToken(cb: (text: string) => void): () => void
         onDone(cb: () => void): () => void
         onError(cb: (message: string) => void): () => void
         onRateLimit(cb: (retryAfterMs: number) => void): () => void
+        onToolCall(cb: (e: ToolCallEvent) => void): () => void
+        onToolResult(cb: (e: ToolResultEvent) => void): () => void
+        onToolApproval(cb: (e: ToolApprovalRequest) => void): () => void
+        approveTool(callId: string): void
+        denyTool(callId: string): void
       }
       git: {
         status(rootPath: string): Promise<FileStatus[]>
@@ -60,6 +105,14 @@ declare global {
         commit(rootPath: string, message: string): Promise<void>
       }
       setTitle(title: string): void
+      mcp: {
+        listTools(): Promise<McpTool[]>
+        connect(config: McpServerConfig): Promise<void>
+        disconnect(id: string): Promise<void>
+      }
+      claude: {
+        loadContext(rootPath: string): Promise<{ content: string | null }>
+      }
     }
   }
 }

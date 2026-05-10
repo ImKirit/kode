@@ -56,9 +56,10 @@ contextBridge.exposeInMainWorld('kode', {
   },
   ai: {
     sendMessage: (
-      messages: Array<{ role: 'user' | 'assistant'; content: string }>
+      messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+      systemPrompt?: string
     ): Promise<void> =>
-      ipcRenderer.invoke('ai:sendMessage', messages),
+      ipcRenderer.invoke('ai:sendMessage', messages, systemPrompt),
     stop: (): void =>
       ipcRenderer.send('ai:stop'),
     onToken: (cb: (text: string) => void): (() => void) => {
@@ -81,6 +82,25 @@ contextBridge.exposeInMainWorld('kode', {
       ipcRenderer.on('ai:rateLimit', listener)
       return () => ipcRenderer.removeListener('ai:rateLimit', listener)
     },
+    onToolCall: (cb: (e: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, e: unknown) => cb(e)
+      ipcRenderer.on('ai:toolCall', listener)
+      return () => ipcRenderer.removeListener('ai:toolCall', listener)
+    },
+    onToolResult: (cb: (e: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, e: unknown) => cb(e)
+      ipcRenderer.on('ai:toolResult', listener)
+      return () => ipcRenderer.removeListener('ai:toolResult', listener)
+    },
+    onToolApproval: (cb: (e: unknown) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, e: unknown) => cb(e)
+      ipcRenderer.on('ai:toolApproval', listener)
+      return () => ipcRenderer.removeListener('ai:toolApproval', listener)
+    },
+    approveTool: (callId: string): void =>
+      ipcRenderer.send('ai:approveTool', callId),
+    denyTool: (callId: string): void =>
+      ipcRenderer.send('ai:denyTool', callId),
   },
   git: {
     status: (rootPath: string): Promise<Array<{ path: string; status: string }>> =>
@@ -92,5 +112,17 @@ contextBridge.exposeInMainWorld('kode', {
     commit: (rootPath: string, message: string): Promise<void> =>
       ipcRenderer.invoke('git:commit', rootPath, message)
   },
-  setTitle: (title: string): void => ipcRenderer.send('window:setTitle', title)
+  setTitle: (title: string): void => ipcRenderer.send('window:setTitle', title),
+  mcp: {
+    listTools: (): Promise<unknown[]> =>
+      ipcRenderer.invoke('mcp:listTools'),
+    connect: (config: unknown): Promise<void> =>
+      ipcRenderer.invoke('mcp:connect', config),
+    disconnect: (id: string): Promise<void> =>
+      ipcRenderer.invoke('mcp:disconnect', id),
+  },
+  claude: {
+    loadContext: (rootPath: string): Promise<{ content: string | null }> =>
+      ipcRenderer.invoke('claude:loadContext', rootPath),
+  },
 })
