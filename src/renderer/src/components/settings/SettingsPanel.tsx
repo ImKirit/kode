@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import { X } from 'lucide-react'
 import { AppearanceSettings } from './AppearanceSettings'
+import { McpSettings } from './McpSettings'
 import type { ThemeName } from '../../styles/themes'
+import type { McpServerConfig } from '../../types/electron'
 
 interface SettingsPanelProps {
   open: boolean
@@ -10,11 +13,19 @@ interface SettingsPanelProps {
   customAccent: string
   onSetTheme(name: ThemeName): void
   onSetCustomColors(primary: string, accent: string): void
+  mcpServers: McpServerConfig[]
+  mcpPermission: 'ask' | 'full'
+  onAddMcpServer(config: Omit<McpServerConfig, 'id'>): void
+  onRemoveMcpServer(id: string): void
+  onSetMcpPermission(value: 'ask' | 'full'): void
 }
 
 export function SettingsPanel({
-  open, onClose, theme, customPrimary, customAccent, onSetTheme, onSetCustomColors
+  open, onClose, theme, customPrimary, customAccent, onSetTheme, onSetCustomColors,
+  mcpServers, mcpPermission, onAddMcpServer, onRemoveMcpServer, onSetMcpPermission
 }: SettingsPanelProps) {
+  const [activeTab, setActiveTab] = useState<'appearance' | 'mcp'>('appearance')
+
   if (!open) return null
 
   return (
@@ -96,33 +107,50 @@ export function SettingsPanel({
             flexShrink: 0,
             background: 'var(--bg-sidebar)'
           }}>
-            <button
-              data-flat
-              aria-pressed
-              style={{
-                width: '100%',
-                textAlign: 'left',
-                padding: '8px 12px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--accent)',
-                color: '#ffffff',
-                fontSize: 13,
-                fontWeight: 500
-              }}
-            >
-              Appearance
-            </button>
+            {(['appearance', 'mcp'] as const).map(tab => (
+              <button
+                key={tab}
+                data-flat
+                aria-pressed={activeTab === tab}
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: activeTab === tab ? 'var(--accent)' : 'transparent',
+                  color: activeTab === tab ? '#ffffff' : 'var(--text-secondary)',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {tab === 'appearance' ? 'Appearance' : 'MCP'}
+              </button>
+            ))}
           </div>
 
           {/* Content */}
           <div style={{ flex: 1, padding: 24, overflowY: 'auto' }}>
-            <AppearanceSettings
-              theme={theme}
-              customPrimary={customPrimary}
-              customAccent={customAccent}
-              onSetTheme={onSetTheme}
-              onSetCustomColors={onSetCustomColors}
-            />
+            {activeTab === 'appearance' && (
+              <AppearanceSettings
+                theme={theme}
+                customPrimary={customPrimary}
+                customAccent={customAccent}
+                onSetTheme={onSetTheme}
+                onSetCustomColors={onSetCustomColors}
+              />
+            )}
+            {activeTab === 'mcp' && (
+              <McpSettings
+                servers={mcpServers}
+                permission={mcpPermission}
+                onAddServer={onAddMcpServer}
+                onRemoveServer={onRemoveMcpServer}
+                onSetPermission={onSetMcpPermission}
+              />
+            )}
           </div>
         </div>
       </div>
