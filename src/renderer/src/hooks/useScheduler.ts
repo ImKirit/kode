@@ -1,8 +1,25 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
+export interface ToolCallEntry {
+  callId: string
+  toolName: string
+  serverId: string
+  args: Record<string, unknown>
+  status: 'pending' | 'success' | 'error' | 'denied'
+  result?: string
+}
+
+export interface ToolApprovalRequest {
+  callId: string
+  toolName: string
+  serverId: string
+  args: Record<string, unknown>
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+  toolCalls?: ToolCallEntry[]
 }
 
 export interface UseSchedulerResult {
@@ -11,11 +28,14 @@ export interface UseSchedulerResult {
   error: string | null
   retryCountdown: number | null
   queue: string[]
-  sendOrEnqueue(text: string): void
+  pendingApproval: ToolApprovalRequest | null
+  sendOrEnqueue(text: string, systemPrompt?: string): void
   stop(): void
   clearMessages(): void
   removeFromQueue(index: number): void
   clearQueue(): void
+  approveTool(callId: string): void
+  denyTool(callId: string): void
 }
 
 export function useScheduler(): UseSchedulerResult {
@@ -24,23 +44,22 @@ export function useScheduler(): UseSchedulerResult {
   const [error, setError] = useState<string | null>(null)
   const [queue, setQueue] = useState<string[]>([])
   const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
+  const [pendingApproval, setPendingApproval] = useState<ToolApprovalRequest | null>(null)
 
-  // Refs to avoid stale closures
   const messagesRef = useRef<ChatMessage[]>([])
   const isStreamingRef = useRef(false)
   const retryCountdownRef = useRef<number | null>(null)
-  // Messages sent to the API for the current request — used for retry on rate limit
   const pendingMessagesRef = useRef<Array<{ role: 'user' | 'assistant'; content: string }> | null>(null)
-  // Track previous isStreaming value for auto-drain detection
   const prevIsStreamingRef = useRef(false)
   const queueRef = useRef<string[]>([])
+  const systemPromptRef = useRef<string | undefined>(undefined)
 
   useEffect(() => { messagesRef.current = messages }, [messages])
   useEffect(() => { isStreamingRef.current = isStreaming }, [isStreaming])
   useEffect(() => { retryCountdownRef.current = retryCountdown }, [retryCountdown])
   useEffect(() => { queueRef.current = queue }, [queue])
 
-  // AI event subscriptions (once on mount)
+  // AI event subscriptions
   useEffect(() => {
     const unToken = window.kode.ai.onToken((text) => {
       setMessages(prev => {
@@ -69,7 +88,6 @@ export function useScheduler(): UseSchedulerResult {
     const unRateLimit = window.kode.ai.onRateLimit((retryAfterMs) => {
       isStreamingRef.current = false
       setIsStreaming(false)
-      // Remove the empty assistant placeholder added when message was sent
       setMessages(prev => {
         const copy = [...prev]
         if (copy.length > 0 && copy[copy.length - 1].role === 'assistant' && copy[copy.length - 1].content === '') {
@@ -80,10 +98,59 @@ export function useScheduler(): UseSchedulerResult {
       setRetryCountdown(Math.ceil(retryAfterMs / 1000))
     })
 
-    return () => { unToken(); unDone(); unError(); unRateLimit() }
+    const unToolCall = window.kode.ai.onToolCall((e) => {
+      setMessages(prev => {
+        const copy = [...prev]
+        const last = copy[copy.length - 1]
+        if (last?.role === 'assistant') {
+          const entry: ToolCallEntry = {
+            callId: e.callId,
+            toolName: e.toolName,
+            serverId: e.serverId,
+            args: e.args,
+            status: 'pending'
+          }
+          copy[copy.length - 1] = {
+            ...last,
+            toolCalls: [...(last.toolCalls ?? []), entry]
+          }
+        }
+        return copy
+      })
+    })
+
+    const unToolResult = window.kode.ai.onToolResult((e) => {
+      setMessages(prev => {
+        const copy = [...prev]
+        const last = copy[copy.length - 1]
+        if (last?.role === 'assistant' && last.toolCalls) {
+          const toolCalls = last.toolCalls.map(tc =>
+            tc.callId === e.callId
+              ? { ...tc, status: (e.isError ? 'error' : 'success') as 'success' | 'error', result: e.result }
+              : tc
+          )
+          copy[copy.length - 1] = { ...last, toolCalls }
+        }
+        return copy
+      })
+    })
+
+    const unToolApproval = window.kode.ai.onToolApproval((e) => {
+      setPendingApproval(e)
+    })
+
+    return () => {
+      unToken()
+      unDone()
+      unError()
+      unRateLimit()
+      unToolCall()
+      unToolResult()
+      unToolApproval()
+    }
   }, [])
 
-  // Countdown tick — decrements every second, retries at 0
+  // Countdown tick
   useEffect(() => {
     if (retryCountdown === null) return
     if (retryCountdown === 0) {
@@ -95,7 +162,7 @@ export function useScheduler(): UseSchedulerResult {
         isStreamingRef.current = true
         setIsStreaming(true)
         setError(null)
-        window.kode.ai.sendMessage(msgs)
+        window.kode.ai.sendMessage(msgs, systemPromptRef.current)
       }
       return
     }
@@ -103,7 +170,7 @@ export function useScheduler(): UseSchedulerResult {
     return () => clearTimeout(timer)
   }, [retryCountdown])
 
-  // Auto-drain: when streaming finishes (and no rate-limit pending), send next queued item
+  // Auto-drain queue
   useEffect(() => {
     const wasStreaming = prevIsStreamingRef.current
     prevIsStreamingRef.current = isStreaming
@@ -121,12 +188,13 @@ export function useScheduler(): UseSchedulerResult {
     isStreamingRef.current = true
     setIsStreaming(true)
     setError(null)
-    window.kode.ai.sendMessage(newMessages)
+    window.kode.ai.sendMessage(newMessages, systemPromptRef.current)
   }, [isStreaming])
 
-  const sendOrEnqueue = useCallback((text: string) => {
+  const sendOrEnqueue = useCallback((text: string, systemPrompt?: string) => {
     if (!text.trim()) return
     const trimmed = text.trim()
+    systemPromptRef.current = systemPrompt
     if (isStreamingRef.current || retryCountdownRef.current !== null) {
       setQueue(prev => [...prev, trimmed])
       return
@@ -139,7 +207,7 @@ export function useScheduler(): UseSchedulerResult {
     isStreamingRef.current = true
     setIsStreaming(true)
     setError(null)
-    window.kode.ai.sendMessage(newMessages)
+    window.kode.ai.sendMessage(newMessages, systemPrompt)
   }, [])
 
   const stop = useCallback(() => {
@@ -165,8 +233,30 @@ export function useScheduler(): UseSchedulerResult {
 
   const clearQueue = useCallback(() => setQueue([]), [])
 
+  const approveTool = useCallback((callId: string) => {
+    window.kode.ai.approveTool(callId)
+    setPendingApproval(null)
+  }, [])
+
+  const denyTool = useCallback((callId: string) => {
+    window.kode.ai.denyTool(callId)
+    setPendingApproval(null)
+    setMessages(prev => {
+      const copy = [...prev]
+      const last = copy[copy.length - 1]
+      if (last?.role === 'assistant' && last.toolCalls) {
+        const toolCalls = last.toolCalls.map(tc =>
+          tc.callId === callId ? { ...tc, status: 'denied' as const } : tc
+        )
+        copy[copy.length - 1] = { ...last, toolCalls }
+      }
+      return copy
+    })
+  }, [])
+
   return {
-    messages, isStreaming, error, retryCountdown, queue,
-    sendOrEnqueue, stop, clearMessages, removeFromQueue, clearQueue
+    messages, isStreaming, error, retryCountdown, queue, pendingApproval,
+    sendOrEnqueue, stop, clearMessages, removeFromQueue, clearQueue,
+    approveTool, denyTool
   }
 }
