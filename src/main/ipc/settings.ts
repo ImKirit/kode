@@ -1,6 +1,7 @@
 import { ipcMain, app, safeStorage } from 'electron'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import type { McpServerConfig } from '../mcp/types'
 
 export interface ProviderConfig {
   apiKey: string
@@ -13,6 +14,8 @@ export interface AppSettings {
     anthropic: ProviderConfig
     openai: ProviderConfig
   }
+  mcpServers: McpServerConfig[]
+  mcpPermission: 'ask' | 'full'
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -20,7 +23,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   providers: {
     anthropic: { apiKey: '', model: 'claude-sonnet-4-6' },
     openai: { apiKey: '', model: 'gpt-4o' }
-  }
+  },
+  mcpServers: [],
+  mcpPermission: 'full',
 }
 
 interface StoredSettings {
