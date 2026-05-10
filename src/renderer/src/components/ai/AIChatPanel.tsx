@@ -5,16 +5,20 @@ import { useSettings } from '../../hooks/useSettings'
 import { ChatMessage } from './ChatMessage'
 import { ProviderSettings } from './ProviderSettings'
 import { QueueDisplay } from './QueueDisplay'
+import { PermissionDialog } from './PermissionDialog'
 
 interface AIChatPanelProps {
   autoFollowEnabled: boolean
   onToggleAutoFollow(): void
+  systemPrompt?: string
+  hasClaudeContext?: boolean
 }
 
-export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow }: AIChatPanelProps) {
+export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow, systemPrompt, hasClaudeContext }: AIChatPanelProps) {
   const {
     messages, isStreaming, error, retryCountdown, queue,
-    sendOrEnqueue, stop, clearMessages, removeFromQueue, clearQueue
+    sendOrEnqueue, stop, clearMessages, removeFromQueue, clearQueue,
+    pendingApproval, approveTool, denyTool
   } = useScheduler()
   const { settings, setActiveProvider, setProviderKey, setProviderModel } = useSettings()
   const [input, setInput] = useState('')
@@ -30,9 +34,9 @@ export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow }: AIChatPan
 
   const handleSend = useCallback(() => {
     if (!input.trim()) return
-    sendOrEnqueue(input)
+    sendOrEnqueue(input, systemPrompt)
     setInput('')
-  }, [input, sendOrEnqueue])
+  }, [input, sendOrEnqueue, systemPrompt])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -83,6 +87,19 @@ export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow }: AIChatPan
               padding: '1px 5px'
             }}>
               {modelLabel}
+            </span>
+          )}
+          {hasClaudeContext && (
+            <span style={{
+              fontSize: 10,
+              color: '#fff',
+              background: 'var(--accent)',
+              borderRadius: 3,
+              padding: '1px 5px',
+              fontFamily: 'monospace',
+              fontWeight: 600
+            }}>
+              CLAUDE.md
             </span>
           )}
           <button
@@ -176,6 +193,7 @@ export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow }: AIChatPan
             key={`${msg.role}-${i}`}
             role={msg.role}
             content={msg.content}
+            toolCalls={msg.toolCalls}
             isStreaming={isStreaming && i === messages.length - 1 && msg.role === 'assistant'}
           />
         ))}
@@ -202,6 +220,15 @@ export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow }: AIChatPan
         onRemove={removeFromQueue}
         onClearQueue={clearQueue}
       />
+
+      {/* Permission dialog for Ask mode */}
+      {pendingApproval && (
+        <PermissionDialog
+          {...pendingApproval}
+          onAllow={() => approveTool(pendingApproval.callId)}
+          onDeny={() => denyTool(pendingApproval.callId)}
+        />
+      )}
 
       {/* Input area */}
       <div style={{

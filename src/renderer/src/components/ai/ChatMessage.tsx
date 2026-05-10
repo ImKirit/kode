@@ -1,10 +1,14 @@
+import { ToolCallBlock } from './ToolCallBlock'
+import type { ToolCallEntry } from '../../hooks/useScheduler'
+
 interface ChatMessageProps {
   role: 'user' | 'assistant'
   content: string
   isStreaming: boolean
+  toolCalls?: ToolCallEntry[]
 }
 
-export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
+export function ChatMessage({ role, content, isStreaming, toolCalls }: ChatMessageProps) {
   const isUser = role === 'user'
 
   return (
@@ -42,6 +46,20 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
           />
         )}
       </div>
+      {toolCalls && toolCalls.length > 0 && (
+        <div style={{ alignSelf: 'flex-start', width: '80%' }}>
+          {toolCalls.map(tc => (
+            <ToolCallBlock
+              key={tc.callId}
+              toolName={tc.toolName}
+              serverId={tc.serverId}
+              args={tc.args}
+              status={tc.status}
+              result={tc.result}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -115,7 +115,7 @@ describe('AIChatPanel', () => {
     render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     fireEvent.change(screen.getByPlaceholderText('Message...'), { target: { value: 'Hello' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
-    expect(mockSendOrEnqueue).toHaveBeenCalledWith('Hello')
+    expect(mockSendOrEnqueue).toHaveBeenCalledWith('Hello', undefined)
   })
 
   it('does not call sendOrEnqueue when input is empty', () => {
@@ -178,7 +178,7 @@ describe('AIChatPanel', () => {
     render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     fireEvent.change(screen.getByPlaceholderText('Message...'), { target: { value: 'Hello' } })
     fireEvent.keyDown(screen.getByPlaceholderText('Message...'), { key: 'Enter', shiftKey: false })
-    expect(mockSendOrEnqueue).toHaveBeenCalledWith('Hello')
+    expect(mockSendOrEnqueue).toHaveBeenCalledWith('Hello', undefined)
   })
 
   it('does not send on Shift+Enter', () => {

@@ -4,6 +4,8 @@ import { usePanelLayout } from './hooks/usePanelLayout'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useAutoFollow } from './hooks/useAutoFollow'
 import { useTheme } from './hooks/useTheme'
+import { useSettings } from './hooks/useSettings'
+import { useClaudeContext } from './hooks/useClaudeContext'
 import { AppLayout } from './components/layout/AppLayout'
 import { ActivityBar } from './components/layout/ActivityBar'
 import { MenuBar } from './components/layout/MenuBar'
@@ -17,6 +19,7 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const themeState = useTheme()
+  const { settings, addMcpServer, removeMcpServer, setMcpPermission } = useSettings()
 
   const {
     project,
@@ -39,6 +42,8 @@ export function App() {
     updateFileContent,
     setActiveFile
   })
+
+  const { systemPrompt, hasContext } = useClaudeContext(project.rootPath ?? null)
 
   useKeyboardShortcuts({
     onToggleSidebar: layout.toggleSidebar,
@@ -90,6 +95,8 @@ export function App() {
           <AIChatPanel
             autoFollowEnabled={autoFollow.enabled}
             onToggleAutoFollow={autoFollow.toggle}
+            systemPrompt={systemPrompt ?? undefined}
+            hasClaudeContext={hasContext}
           />
         }
         bottomPanel={<BottomPanel rootPath={project.rootPath} />}
@@ -103,6 +110,11 @@ export function App() {
         customAccent={themeState.customAccent}
         onSetTheme={themeState.setTheme}
         onSetCustomColors={themeState.setCustomColors}
+        mcpServers={settings?.mcpServers ?? []}
+        mcpPermission={settings?.mcpPermission ?? 'full'}
+        onAddMcpServer={addMcpServer}
+        onRemoveMcpServer={removeMcpServer}
+        onSetMcpPermission={setMcpPermission}
       />
     </>
   )
