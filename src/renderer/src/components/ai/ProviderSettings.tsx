@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { AppSettings } from '../../types/electron.d'
 
@@ -34,9 +35,17 @@ export function ProviderSettings({
   onSetProviderModel,
   onClose
 }: ProviderSettingsProps) {
+  const [connecting, setConnecting] = useState<string | null>(null)
+
   const active = settings.activeProvider
   const providerConfig = settings.providers[active]
   const models = PROVIDER_MODELS[active]
+
+  const isConnected = (key: string | undefined) => !!key?.trim()
+
+  const setProviderKey = (provider: 'anthropic' | 'openai', key: string) => {
+    onSetProviderKey(provider, key)
+  }
 
   const sectionStyle: React.CSSProperties = {
     padding: '10px 12px',
@@ -125,13 +134,122 @@ export function ProviderSettings({
       {/* API Key */}
       <div style={sectionStyle}>
         <label style={labelStyle}>API Key</label>
-        <input
-          type="password"
-          value={providerConfig.apiKey}
-          placeholder={PLACEHOLDERS[active]}
-          onChange={e => onSetProviderKey(active, e.target.value)}
-          style={inputStyle}
-        />
+        {isConnected(providerConfig?.apiKey) ? (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 14px',
+            background: 'var(--bg-sidebar)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: '#4ade80', flexShrink: 0,
+                display: 'inline-block'
+              }} />
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                API key connected
+              </span>
+            </div>
+            <button
+              data-flat
+              onClick={() => setProviderKey(active, '')}
+              style={{
+                fontSize: 12, color: 'var(--text-muted)', background: 'transparent',
+                padding: '3px 8px', borderRadius: 'var(--radius-sm)',
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit'
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+            >
+              Disconnect
+            </button>
+          </div>
+        ) : connecting === active ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+              {active === 'anthropic'
+                ? 'Get your API key from console.anthropic.com → API Keys.'
+                : 'Get your API key from platform.openai.com → API Keys.'}
+            </p>
+            <input
+              type="password"
+              placeholder="sk-..."
+              aria-label="API Key"
+              autoFocus
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  setProviderKey(active, (e.target as HTMLInputElement).value)
+                  setConnecting(null)
+                }
+                if (e.key === 'Escape') setConnecting(null)
+              }}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-md)',
+                fontSize: 13,
+                width: '100%',
+                boxSizing: 'border-box',
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-primary)',
+                fontFamily: 'inherit',
+                outline: 'none'
+              }}
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                style={{
+                  flex: 1, padding: '7px 0',
+                  background: 'var(--accent)', color: '#ffffff',
+                  borderRadius: 'var(--radius-sm)', fontSize: 13,
+                  border: 'none', cursor: 'pointer', fontFamily: 'inherit'
+                }}
+                onClick={e => {
+                  const input = (e.currentTarget.parentElement?.previousElementSibling as HTMLInputElement)
+                  if (input?.value) {
+                    setProviderKey(active, input.value)
+                    setConnecting(null)
+                  }
+                }}
+              >
+                Save Key
+              </button>
+              <button
+                data-flat
+                style={{
+                  padding: '7px 16px',
+                  background: 'var(--bg-sidebar)',
+                  color: 'var(--text-secondary)',
+                  borderRadius: 'var(--radius-sm)', fontSize: 13,
+                  border: 'none', cursor: 'pointer', fontFamily: 'inherit'
+                }}
+                onClick={() => setConnecting(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            style={{
+              width: '100%',
+              padding: '10px 0',
+              background: 'var(--bg-button)',
+              color: 'var(--bg-secondary)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: 13,
+              fontWeight: 500,
+              border: 'none', cursor: 'pointer', fontFamily: 'inherit'
+            }}
+            onClick={() => setConnecting(active)}
+          >
+            Connect Account
+          </button>
+        )}
       </div>
 
       {/* Model selector */}

@@ -68,7 +68,7 @@ describe('ProviderSettings', () => {
     expect(mockSetActiveProvider).toHaveBeenCalledWith('openai')
   })
 
-  it('shows API key input for active provider', () => {
+  it('shows connected state when provider has an API key', () => {
     render(
       <ProviderSettings
         settings={DEFAULT_SETTINGS}
@@ -78,11 +78,11 @@ describe('ProviderSettings', () => {
         onClose={mockOnClose}
       />
     )
-    const keyInput = screen.getByPlaceholderText('sk-ant-...')
-    expect(keyInput).toBeInTheDocument()
+    expect(screen.getByText('API key connected')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /disconnect/i })).toBeInTheDocument()
   })
 
-  it('calls onSetProviderKey when API key input changes', () => {
+  it('calls onSetProviderKey with empty string when Disconnect is clicked', () => {
     render(
       <ProviderSettings
         settings={DEFAULT_SETTINGS}
@@ -92,9 +92,64 @@ describe('ProviderSettings', () => {
         onClose={mockOnClose}
       />
     )
-    const keyInput = screen.getByPlaceholderText('sk-ant-...')
-    fireEvent.change(keyInput, { target: { value: 'sk-ant-new' } })
-    expect(mockSetProviderKey).toHaveBeenCalledWith('anthropic', 'sk-ant-new')
+    fireEvent.click(screen.getByRole('button', { name: /disconnect/i }))
+    expect(mockSetProviderKey).toHaveBeenCalledWith('anthropic', '')
+  })
+
+  it('shows Connect Account button when provider has no API key', () => {
+    const disconnectedSettings = {
+      ...DEFAULT_SETTINGS,
+      activeProvider: 'openai' as const
+    }
+    render(
+      <ProviderSettings
+        settings={disconnectedSettings}
+        onSetActiveProvider={mockSetActiveProvider}
+        onSetProviderKey={mockSetProviderKey}
+        onSetProviderModel={mockSetProviderModel}
+        onClose={mockOnClose}
+      />
+    )
+    expect(screen.getByRole('button', { name: /connect account/i })).toBeInTheDocument()
+  })
+
+  it('shows key input form when Connect Account is clicked', () => {
+    const disconnectedSettings = {
+      ...DEFAULT_SETTINGS,
+      activeProvider: 'openai' as const
+    }
+    render(
+      <ProviderSettings
+        settings={disconnectedSettings}
+        onSetActiveProvider={mockSetActiveProvider}
+        onSetProviderKey={mockSetProviderKey}
+        onSetProviderModel={mockSetProviderModel}
+        onClose={mockOnClose}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: /connect account/i }))
+    expect(screen.getByLabelText('API Key')).toBeInTheDocument()
+  })
+
+  it('calls onSetProviderKey when Save Key is clicked with a value', () => {
+    const disconnectedSettings = {
+      ...DEFAULT_SETTINGS,
+      activeProvider: 'openai' as const
+    }
+    render(
+      <ProviderSettings
+        settings={disconnectedSettings}
+        onSetActiveProvider={mockSetActiveProvider}
+        onSetProviderKey={mockSetProviderKey}
+        onSetProviderModel={mockSetProviderModel}
+        onClose={mockOnClose}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: /connect account/i }))
+    const input = screen.getByLabelText('API Key')
+    fireEvent.change(input, { target: { value: 'sk-new-key' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(mockSetProviderKey).toHaveBeenCalledWith('openai', 'sk-new-key')
   })
 
   it('shows model selector for active provider', () => {
