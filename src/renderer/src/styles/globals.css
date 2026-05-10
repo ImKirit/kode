@@ -1,23 +1,36 @@
 :root {
-  --bg-primary:      #1e1e1e;
-  --bg-secondary:    #252526;
-  --bg-sidebar:      #1a1a1a;
-  --bg-input:        #2a2a2a;
-  --bg-button:       #2d2d2d;
-  --bg-tab-active:   #1e1e1e;
-  --bg-tab-inactive: #2d2d2d;
+  /* Theme variables (overridden by useTheme hook at runtime) */
+  --bg-primary:      #f5f5f5;
+  --bg-secondary:    #ffffff;
+  --bg-sidebar:      #ebebeb;
+  --bg-input:        #ffffff;
+  --bg-button:       #1a1a1a;
+  --bg-tab-active:   #ffffff;
+  --bg-tab-inactive: #e8e8e8;
 
-  --border:          #3a3a3a;
-  --border-light:    #444444;
+  --border:          #d8d8d8;
+  --border-light:    #c0c0c0;
 
-  --text-primary:    #ffffff;
-  --text-secondary:  #a0a0a0;
-  --text-muted:      #666666;
+  --text-primary:    #1a1a1a;
+  --text-secondary:  #4a4a4a;
+  --text-muted:      #8a8a8a;
 
   --accent:          #0e9de8;
-  --accent-blue:     #0e9de8;
-  --accent-green:    #4ec9b0;
 
+  --shadow-button:        0 2px 0 rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-button-hover:  0 4px 0 rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.12);
+  --shadow-button-active: 0 0px 0 rgba(0,0,0,0.14), inset 0 1px 3px rgba(0,0,0,0.10);
+
+  /* Design tokens */
+  --radius-sm:    4px;
+  --radius-md:    6px;
+  --radius-lg:    8px;
+  --radius-xl:    12px;
+
+  --transition-fast: 80ms ease;
+  --transition-med:  150ms ease;
+
+  /* Typography */
   --font-editor:     'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
   --font-ui:         -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-size-ui:    13px;
@@ -48,15 +61,44 @@ html, body, #root {
   height: var(--scrollbar-width);
 }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #777; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
+/* Buttons — raised effect */
 button {
   cursor: pointer;
   border: none;
   outline: none;
   font-family: var(--font-ui);
   font-size: var(--font-size-ui);
+  border-radius: var(--radius-sm);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+button:not([data-flat]):not(:disabled) {
+  box-shadow: var(--shadow-button);
+}
+
+button:not([data-flat]):hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-button-hover);
+}
+
+button:not([data-flat]):active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: var(--shadow-button-active);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 input, textarea {
@@ -65,11 +107,13 @@ input, textarea {
   background: var(--bg-input);
   color: var(--text-primary);
   border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   outline: none;
+  transition: border-color var(--transition-fast);
 }
 
 input:focus, textarea:focus {
-  border-color: var(--border-light);
+  border-color: var(--accent);
 }
 
 /* Electron drag regions */
