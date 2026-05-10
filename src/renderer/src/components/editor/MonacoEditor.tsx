@@ -7,11 +7,12 @@ interface MonacoEditorProps {
   language: string
   filePath: string
   isActive: boolean
+  monacoTheme: string
   onChange(value: string): void
   onSave(): void
 }
 
-export function MonacoEditor({ content, language, onChange, onSave, isActive }: MonacoEditorProps) {
+export function MonacoEditor({ content, language, onChange, onSave, isActive, monacoTheme }: MonacoEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export function MonacoEditor({ content, language, onChange, onSave, isActive }: 
       height="100%"
       language={language}
       value={content}
-      theme="vs-dark"
+      theme={monacoTheme}
       options={{
         fontSize: 14,
         fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",

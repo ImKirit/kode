@@ -9,10 +9,11 @@ interface EditorAreaProps {
   onClose(path: string): void
   onContentChange(path: string, content: string): void
   onSave(path: string): void
+  monacoTheme: string
 }
 
 export function EditorArea({
-  openFiles, activeFilePath, onActivate, onClose, onContentChange, onSave
+  openFiles, activeFilePath, onActivate, onClose, onContentChange, onSave, monacoTheme
 }: EditorAreaProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -56,6 +57,7 @@ export function EditorArea({
               language={file.language}
               filePath={file.path}
               isActive={file.path === activeFilePath}
+              monacoTheme={monacoTheme}
               onChange={v => onContentChange(file.path, v)}
               onSave={() => onSave(file.path)}
             />

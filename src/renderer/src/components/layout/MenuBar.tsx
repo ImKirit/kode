@@ -16,9 +16,10 @@ interface MenuBarProps {
   projectName: string
   onOpenFolder(): void
   onSave?(): void
+  onOpenSettings?(): void
 }
 
-export function MenuBar({ projectName, onOpenFolder, onSave }: MenuBarProps) {
+export function MenuBar({ projectName, onOpenFolder, onSave, onOpenSettings }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const barRef = useRef<HTMLDivElement>(null)
 
@@ -29,7 +30,9 @@ export function MenuBar({ projectName, onOpenFolder, onSave }: MenuBarProps) {
         { label: 'Open Folder...', shortcut: 'Ctrl+K Ctrl+O', action: () => { setOpenMenu(null); onOpenFolder() } },
         { label: '', separator: true },
         { label: 'Save', shortcut: 'Ctrl+S', action: () => { setOpenMenu(null); onSave?.() } },
-        { label: 'Save All', shortcut: 'Ctrl+Shift+S' }
+        { label: 'Save All', shortcut: 'Ctrl+Shift+S' },
+        { label: '', separator: true },
+        { label: 'Settings...', shortcut: 'Ctrl+,', action: () => { setOpenMenu(null); onOpenSettings?.() } }
       ]
     },
     {
