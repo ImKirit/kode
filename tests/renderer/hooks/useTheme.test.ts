@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useTheme } from '@renderer/hooks/useTheme'
+import { lightTheme, darkTheme } from '@renderer/styles/themes'
 
 const mockSetProperty = vi.fn()
 const mockStyle = { setProperty: mockSetProperty }
@@ -37,14 +38,18 @@ describe('useTheme', () => {
 
   it('applies CSS variables to documentElement on mount', () => {
     renderHook(() => useTheme())
-    expect(mockSetProperty).toHaveBeenCalled()
+    expect(mockSetProperty).toHaveBeenCalledWith('--bg-primary', lightTheme['--bg-primary'])
+    expect(mockSetProperty).toHaveBeenCalledWith('--monaco-theme', lightTheme['--monaco-theme'])
+    expect(mockSetProperty).toHaveBeenCalledTimes(Object.keys(lightTheme).length)
   })
 
   it('applies CSS variables when theme changes', () => {
     const { result } = renderHook(() => useTheme())
     mockSetProperty.mockClear()
     act(() => { result.current.setTheme('dark') })
-    expect(mockSetProperty).toHaveBeenCalled()
+    expect(mockSetProperty).toHaveBeenCalledWith('--bg-primary', darkTheme['--bg-primary'])
+    expect(mockSetProperty).toHaveBeenCalledWith('--monaco-theme', darkTheme['--monaco-theme'])
+    expect(mockSetProperty).toHaveBeenCalledTimes(Object.keys(darkTheme).length)
   })
 
   it('setCustomColors updates custom theme primary and accent', () => {

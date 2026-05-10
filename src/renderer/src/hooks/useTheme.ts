@@ -12,7 +12,14 @@ interface ThemeState {
 function loadState(): ThemeState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (
+        typeof parsed?.name === 'string' &&
+        typeof parsed?.primary === 'string' &&
+        typeof parsed?.accent === 'string'
+      ) return parsed as ThemeState
+    }
   } catch {}
   return { name: 'light', primary: '#f5f5f5', accent: '#0e9de8' }
 }
