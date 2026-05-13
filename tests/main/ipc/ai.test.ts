@@ -45,6 +45,10 @@ vi.mock('../../../src/main/ipc/settings', () => ({
   loadSettings: mockLoadSettings
 }))
 
+vi.mock('../../../src/main/mcp/McpManager', () => ({
+  mcpManager: { listTools: () => [], callTool: vi.fn() }
+}))
+
 function getHandle(channel: string) {
   const call = mockIpcMainHandle.mock.calls.find(c => c[0] === channel)
   return call?.[1] as ((...args: unknown[]) => unknown) | undefined
