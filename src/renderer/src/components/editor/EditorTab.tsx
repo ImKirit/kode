@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { X } from 'lucide-react'
 
 interface EditorTabProps {
@@ -10,19 +11,23 @@ interface EditorTabProps {
 }
 
 export function EditorTab({ name, active, dirty, onActivate, onClose }: EditorTabProps) {
+  const [hovered, setHovered] = useState(false)
+
   return (
     <div
       onClick={onActivate}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        padding: '0 10px',
+        gap: 5,
+        paddingLeft: 12,
+        paddingRight: 6,
         height: 35,
-        background: active ? 'var(--bg-tab-active)' : 'var(--bg-tab-inactive)',
+        background: active || hovered ? 'var(--bg-tab-active)' : 'var(--bg-tab-inactive)',
         borderRight: '1px solid var(--border)',
         borderBottom: active ? '2px solid var(--kode-btn)' : '2px solid transparent',
-        borderTop: active ? '1px solid transparent' : 'none',
         color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
         cursor: 'pointer',
         userSelect: 'none',
@@ -31,14 +36,9 @@ export function EditorTab({ name, active, dirty, onActivate, onClose }: EditorTa
         flexShrink: 0,
         transition: 'background var(--transition-fast)'
       }}
-      onMouseEnter={e => {
-        if (!active) e.currentTarget.style.background = 'var(--bg-tab-active)'
-      }}
-      onMouseLeave={e => {
-        if (!active) e.currentTarget.style.background = 'var(--bg-tab-inactive)'
-      }}
     >
-      {dirty && (
+      {/* Dirty dot — show when dirty and not hovering (hover shows close button instead) */}
+      {dirty && !hovered && (
         <span
           data-testid="dirty-dot"
           style={{
@@ -50,7 +50,12 @@ export function EditorTab({ name, active, dirty, onActivate, onClose }: EditorTa
           }}
         />
       )}
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>{name}</span>
+
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>
+        {name}
+      </span>
+
+      {/* Close button — fades in on hover/active/dirty */}
       <button
         data-flat
         aria-label="close tab"
@@ -66,17 +71,18 @@ export function EditorTab({ name, active, dirty, onActivate, onClose }: EditorTa
           marginLeft: 2,
           width: 18,
           height: 18,
-          opacity: 0.6
+          flexShrink: 0,
+          opacity: (active || hovered || dirty) ? 1 : 0,
+          pointerEvents: (active || hovered || dirty) ? 'auto' : 'none',
+          transition: 'opacity var(--transition-fast), background var(--transition-fast)'
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.opacity = '1'
+          e.currentTarget.style.background = 'rgba(0,0,0,0.1)'
           e.currentTarget.style.color = 'var(--text-primary)'
-          e.currentTarget.style.background = 'rgba(0,0,0,0.08)'
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.opacity = '0.6'
-          e.currentTarget.style.color = 'var(--text-muted)'
           e.currentTarget.style.background = 'none'
+          e.currentTarget.style.color = 'var(--text-muted)'
         }}
       >
         <X size={11} />

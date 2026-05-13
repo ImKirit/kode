@@ -18,6 +18,10 @@ export function FileTreeNode({
   const isActive = entry.path === activeFilePath
   const kids = children[entry.path] ?? []
 
+  const dotIndex = entry.name.lastIndexOf('.')
+  const baseName = dotIndex > 0 ? entry.name.slice(0, dotIndex) : entry.name
+  const ext = dotIndex > 0 ? entry.name.slice(dotIndex) : ''
+
   function handleClick() {
     if (entry.type === 'directory') {
       onToggle(entry.path)
@@ -33,16 +37,17 @@ export function FileTreeNode({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 4,
-          padding: `2px 8px 2px ${8 + depth * 16}px`,
+          gap: 3,
+          paddingLeft: 8 + depth * 14,
+          paddingRight: 8,
+          height: 22,
           cursor: 'pointer',
           background: isActive ? 'var(--kode-selection)' : 'transparent',
           color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: isActive ? 500 : 400,
           userSelect: 'none',
-          borderRadius: 0,
-          lineHeight: '22px'
+          borderRadius: 0
         }}
         onMouseEnter={e => {
           if (!isActive) e.currentTarget.style.background = 'rgba(0,0,0,0.05)'
@@ -51,28 +56,41 @@ export function FileTreeNode({
           if (!isActive) e.currentTarget.style.background = 'transparent'
         }}
       >
+        {/* Expand chevron for directories, indent spacer for files */}
         {entry.type === 'directory' ? (
-          <>
+          <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0, color: 'var(--text-muted)', width: 14 }}>
             {isExpanded
-              ? <ChevronDown size={13} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
-              : <ChevronRight size={13} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />}
-            {isExpanded
-              ? <FolderOpen size={13} style={{ flexShrink: 0, color: '#c9a84c' }} />
-              : <Folder size={13} style={{ flexShrink: 0, color: '#c9a84c' }} />}
-          </>
+              ? <ChevronDown size={12} />
+              : <ChevronRight size={12} />}
+          </span>
         ) : (
-          <>
-            <span style={{ width: 13, flexShrink: 0 }} />
-            <File size={13} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
-          </>
+          <span style={{ width: 14, flexShrink: 0 }} />
         )}
+
+        {/* File/Folder icon */}
+        {entry.type === 'directory' ? (
+          isExpanded
+            ? <FolderOpen size={14} style={{ flexShrink: 0, color: '#c9a84c' }} />
+            : <Folder size={14} style={{ flexShrink: 0, color: '#c9a84c' }} />
+        ) : (
+          <File size={14} style={{ flexShrink: 0, color: 'var(--text-muted)', opacity: 0.7 }} />
+        )}
+
+        {/* Name: base + dimmed extension for files */}
         <span style={{
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
-          marginLeft: 3
+          marginLeft: 4
         }}>
-          {entry.name}
+          {entry.type === 'file' && ext ? (
+            <>
+              {baseName}
+              <span style={{ color: 'var(--text-muted)', opacity: 0.75 }}>{ext}</span>
+            </>
+          ) : (
+            entry.name
+          )}
         </span>
       </div>
 
