@@ -34,14 +34,25 @@ function ActivityBarButton({ icon, active, label, onClick }: BtnProps) {
         justifyContent: 'center',
         width: 36,
         height: 36,
-        background: active ? 'var(--accent)' : 'transparent',
+        background: active ? 'var(--kode-btn)' : 'transparent',
         border: 'none',
         cursor: 'pointer',
-        color: active ? '#ffffff' : 'var(--text-muted)',
+        color: active ? 'var(--kode-btn-fg)' : 'var(--text-muted)',
         borderRadius: 'var(--radius-md)',
         padding: 0,
-        boxSizing: 'border-box' as const,
         transition: 'background var(--transition-fast), color var(--transition-fast)'
+      }}
+      onMouseEnter={e => {
+        if (!active) {
+          e.currentTarget.style.background = 'rgba(0,0,0,0.07)'
+          e.currentTarget.style.color = 'var(--text-secondary)'
+        }
+      }}
+      onMouseLeave={e => {
+        if (!active) {
+          e.currentTarget.style.background = 'transparent'
+          e.currentTarget.style.color = 'var(--text-muted)'
+        }
       }}
     >
       {icon}
@@ -67,41 +78,42 @@ export function ActivityBar({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        width: 48,
+        width: 44,
         background: 'var(--bg-sidebar)',
         borderRight: '1px solid var(--border)',
         flexShrink: 0,
         alignItems: 'center',
-        paddingTop: 4
+        paddingTop: 6,
+        gap: 2
       }}
     >
       <ActivityBarButton
-        icon={<Files size={18} />}
+        icon={<Files size={17} />}
         active={sidebarVisible && sidebarView === 'files'}
         label="Toggle Explorer"
         onClick={onToggleSidebar}
       />
       <ActivityBarButton
-        icon={<Clock size={18} />}
+        icon={<Clock size={17} />}
         active={sidebarVisible && sidebarView === 'threads'}
         label="Toggle Threads"
         onClick={onShowThreads}
       />
       <ActivityBarButton
-        icon={<MessageSquare size={18} />}
+        icon={<MessageSquare size={17} />}
         active={aiPanelVisible}
         label="Toggle AI Panel"
         onClick={onToggleAiPanel}
       />
       <ActivityBarButton
-        icon={<Terminal size={18} />}
+        icon={<Terminal size={17} />}
         active={bottomPanelVisible}
         label="Toggle Terminal"
         onClick={onToggleBottomPanel}
       />
       {onTogglePluginBrowser && (
         <ActivityBarButton
-          icon={<Package size={18} />}
+          icon={<Package size={17} />}
           active={pluginBrowserOpen}
           label="Plugin Marketplace"
           onClick={onTogglePluginBrowser}

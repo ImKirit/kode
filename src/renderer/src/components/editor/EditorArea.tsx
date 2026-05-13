@@ -70,12 +70,12 @@ export function EditorArea({
             alignItems: 'center',
             justifyContent: 'center',
             height: '100%',
-            gap: 12,
+            gap: 8,
             color: 'var(--text-muted)',
-            fontSize: 13,
-            userSelect: 'none'
+            fontSize: 12,
+            userSelect: 'none',
+            opacity: 0.6
           }}>
-            <span style={{ fontSize: 32, opacity: 0.3 }}>{ }</span>
             <span>Open a file to start editing</span>
           </div>
         )}

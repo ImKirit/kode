@@ -14,19 +14,25 @@ export function BottomPanel({ rootPath }: BottomPanelProps) {
   const tabStyle = (tab: BottomTab): CSSProperties => ({
     background: 'none',
     border: 'none',
-    borderBottom: activeTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
+    borderBottom: activeTab === tab ? '2px solid var(--kode-btn)' : '2px solid transparent',
     cursor: 'pointer',
-    padding: '6px 14px',
+    padding: '5px 16px',
     fontSize: 11,
+    fontWeight: activeTab === tab ? 600 : 400,
     fontFamily: 'inherit',
-    color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-muted)'
+    letterSpacing: '0.04em',
+    color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-muted)',
+    transition: 'color var(--transition-fast)'
   })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{
-        display: 'flex', borderBottom: '1px solid var(--border)',
-        flexShrink: 0, background: 'var(--bg-secondary)'
+        display: 'flex',
+        borderBottom: '1px solid var(--border)',
+        flexShrink: 0,
+        background: 'var(--bg-secondary)',
+        paddingLeft: 4
       }}>
         <button
           onClick={() => setActiveTab('terminal')}

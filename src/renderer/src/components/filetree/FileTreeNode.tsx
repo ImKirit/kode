@@ -36,15 +36,16 @@ export function FileTreeNode({
           gap: 4,
           padding: `2px 8px 2px ${8 + depth * 16}px`,
           cursor: 'pointer',
-          background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+          background: isActive ? 'var(--kode-selection)' : 'transparent',
           color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-          fontSize: 13,
+          fontSize: 12,
+          fontWeight: isActive ? 500 : 400,
           userSelect: 'none',
-          borderRadius: 2,
-          lineHeight: '20px'
+          borderRadius: 0,
+          lineHeight: '22px'
         }}
         onMouseEnter={e => {
-          if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+          if (!isActive) e.currentTarget.style.background = 'rgba(0,0,0,0.05)'
         }}
         onMouseLeave={e => {
           if (!isActive) e.currentTarget.style.background = 'transparent'
@@ -53,23 +54,23 @@ export function FileTreeNode({
         {entry.type === 'directory' ? (
           <>
             {isExpanded
-              ? <ChevronDown size={14} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
-              : <ChevronRight size={14} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />}
+              ? <ChevronDown size={13} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
+              : <ChevronRight size={13} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />}
             {isExpanded
-              ? <FolderOpen size={14} style={{ flexShrink: 0, color: '#e8c56d' }} />
-              : <Folder size={14} style={{ flexShrink: 0, color: '#e8c56d' }} />}
+              ? <FolderOpen size={13} style={{ flexShrink: 0, color: '#c9a84c' }} />
+              : <Folder size={13} style={{ flexShrink: 0, color: '#c9a84c' }} />}
           </>
         ) : (
           <>
-            <span style={{ width: 14, flexShrink: 0 }} />
-            <File size={14} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
+            <span style={{ width: 13, flexShrink: 0 }} />
+            <File size={13} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
           </>
         )}
         <span style={{
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
-          marginLeft: 4
+          marginLeft: 3
         }}>
           {entry.name}
         </span>
