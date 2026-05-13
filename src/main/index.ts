@@ -7,12 +7,17 @@ import { stopWatcher } from './ipc/watcher'
 let mainWindow: BrowserWindow | null = null
 
 function createWindow(): BrowserWindow {
+  const iconPath = app.isPackaged
+    ? join(process.resourcesPath, 'icon.ico')
+    : join(__dirname, '../../resources/icon.ico')
+
   const win = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 800,
     minHeight: 600,
-    backgroundColor: '#1e1e1e',
+    backgroundColor: '#f3f3f3',
+    icon: iconPath,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

@@ -72,18 +72,15 @@ export function EditorArea({
             alignItems: 'center',
             justifyContent: 'center',
             height: '100%',
-            gap: 10,
+            gap: 14,
             userSelect: 'none'
           }}>
-            <span style={{
-              fontSize: 28,
-              fontWeight: 700,
-              letterSpacing: '0.12em',
-              color: 'var(--text-muted)',
-              opacity: 0.15
-            }}>
-              KODE
-            </span>
+            <img
+              src="/icon.ico"
+              alt="Kode"
+              style={{ width: 64, height: 64, opacity: 0.18, pointerEvents: 'none' }}
+              draggable={false}
+            />
             <span style={{ fontSize: 12, color: 'var(--text-muted)', opacity: 0.5 }}>
               Open a file to start editing
             </span>

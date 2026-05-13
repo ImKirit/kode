@@ -182,13 +182,22 @@ export function MenuBar({ projectName, onOpenFolder, onSave, onOpenSettings }: M
         </div>
       ))}
 
-      {/* Centered KODE label (absolute) */}
+      {/* Centered logo + wordmark (absolute) */}
       <div style={{
         position: 'absolute',
         left: '50%',
         transform: 'translateX(-50%)',
-        pointerEvents: 'none'
+        pointerEvents: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6
       }}>
+        <img
+          src="/icon.ico"
+          alt=""
+          style={{ width: 14, height: 14, opacity: 0.7 }}
+          draggable={false}
+        />
         <span style={{
           fontSize: 10,
           fontWeight: 700,
