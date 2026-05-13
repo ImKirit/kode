@@ -1,12 +1,14 @@
-import { Files, Terminal, MessageSquare } from 'lucide-react'
+import { Files, Terminal, MessageSquare, Package } from 'lucide-react'
 
 interface ActivityBarProps {
   sidebarVisible: boolean
   aiPanelVisible: boolean
   bottomPanelVisible: boolean
+  pluginBrowserOpen?: boolean
   onToggleSidebar(): void
   onToggleAiPanel(): void
   onToggleBottomPanel(): void
+  onTogglePluginBrowser?(): void
 }
 
 interface BtnProps {
@@ -49,9 +51,11 @@ export function ActivityBar({
   sidebarVisible,
   aiPanelVisible,
   bottomPanelVisible,
+  pluginBrowserOpen = false,
   onToggleSidebar,
   onToggleAiPanel,
-  onToggleBottomPanel
+  onToggleBottomPanel,
+  onTogglePluginBrowser
 }: ActivityBarProps) {
   return (
     <div
@@ -85,6 +89,14 @@ export function ActivityBar({
         label="Toggle Terminal"
         onClick={onToggleBottomPanel}
       />
+      {onTogglePluginBrowser && (
+        <ActivityBarButton
+          icon={<Package size={18} />}
+          active={pluginBrowserOpen}
+          label="Plugin Marketplace"
+          onClick={onTogglePluginBrowser}
+        />
+      )}
     </div>
   )
 }

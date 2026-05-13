@@ -125,4 +125,14 @@ contextBridge.exposeInMainWorld('kode', {
     loadContext: (rootPath: string): Promise<{ content: string | null }> =>
       ipcRenderer.invoke('claude:loadContext', rootPath),
   },
+  plugins: {
+    list: (): Promise<unknown[]> =>
+      ipcRenderer.invoke('plugin:list'),
+    search: (query: string): Promise<unknown[]> =>
+      ipcRenderer.invoke('plugin:search', query),
+    install: (id: string): Promise<void> =>
+      ipcRenderer.invoke('plugin:install', id),
+    uninstall: (id: string): Promise<void> =>
+      ipcRenderer.invoke('plugin:uninstall', id),
+  },
 })

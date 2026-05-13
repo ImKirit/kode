@@ -12,6 +12,7 @@ import { registerWatcherHandlers } from './watcher'
 import { registerGitHandlers } from './git'
 import { registerClaudeHandlers } from './claude'
 import { registerMcpHandlers } from './mcp'
+import { registerPluginHandlers } from './plugins'
 import { mcpManager } from '../mcp/McpManager'
 
 export function registerIpcHandlers(): void {
@@ -28,6 +29,7 @@ export function registerIpcHandlers(): void {
   registerGitHandlers()
   registerClaudeHandlers()
   registerMcpHandlers()
+  registerPluginHandlers()
 
   // Connect any user-configured MCP servers from saved settings
   const savedSettings = loadSettings()

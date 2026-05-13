@@ -47,6 +47,22 @@ export interface ToolApprovalRequest {
   args: Record<string, unknown>
 }
 
+export interface PluginMeta {
+  id: string
+  name: string
+  version: string
+  description: string
+  installed: boolean
+}
+
+export interface PluginSearchResult {
+  id: string
+  name: string
+  description: string
+  version: string
+  downloads?: number
+}
+
 export interface AppSettings {
   activeProvider: 'anthropic' | 'openai'
   providers: {
@@ -112,6 +128,12 @@ declare global {
       }
       claude: {
         loadContext(rootPath: string): Promise<{ content: string | null }>
+      }
+      plugins: {
+        list(): Promise<PluginMeta[]>
+        search(query: string): Promise<PluginSearchResult[]>
+        install(id: string): Promise<void>
+        uninstall(id: string): Promise<void>
       }
     }
   }
