@@ -10,6 +10,7 @@ interface AppLayoutProps {
   editor: ReactNode
   aiPanel: ReactNode
   bottomPanel: ReactNode
+  statusBar?: ReactNode
 }
 
 export function AppLayout({
@@ -19,7 +20,8 @@ export function AppLayout({
   sidebar,
   editor,
   aiPanel,
-  bottomPanel
+  bottomPanel,
+  statusBar
 }: AppLayoutProps) {
   const {
     sidebarVisible,
@@ -87,10 +89,8 @@ export function AppLayout({
       {menuBar}
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        {/* Activity bar — always visible */}
         {activityBar}
 
-        {/* Sidebar */}
         {sidebarVisible && (
           <>
             <div style={{
@@ -114,7 +114,6 @@ export function AppLayout({
           </>
         )}
 
-        {/* Center column: editor + bottom panel */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
           <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
             {editor}
@@ -142,7 +141,6 @@ export function AppLayout({
           )}
         </div>
 
-        {/* AI panel resize handle */}
         {aiPanelVisible && (
           <div
             onMouseDown={e => onMouseDown('ai', e)}
@@ -152,7 +150,6 @@ export function AppLayout({
           />
         )}
 
-        {/* AI Panel */}
         {aiPanelVisible && (
           <div style={{
             width: aiPanelWidth,
@@ -164,6 +161,19 @@ export function AppLayout({
           </div>
         )}
       </div>
+
+      {/* Status bar */}
+      {statusBar !== undefined && (
+        <div style={{
+          height: 22,
+          minHeight: 22,
+          background: 'var(--kode-statusbar)',
+          flexShrink: 0,
+          overflow: 'hidden'
+        }}>
+          {statusBar}
+        </div>
+      )}
     </div>
   )
 }

@@ -75,7 +75,6 @@ export function MenuBar({ projectName, onOpenFolder, onSave, onOpenSettings }: M
     }
   ]
 
-  // Close menu on outside click
   useEffect(() => {
     if (!openMenu) return
     function handleClick(e: MouseEvent) {
@@ -96,10 +95,10 @@ export function MenuBar({ projectName, onOpenFolder, onSave, onOpenSettings }: M
       style={{
         display: 'flex',
         alignItems: 'center',
-        height: 30,
-        background: 'var(--bg-secondary)',
+        height: 32,
+        background: 'var(--kode-titlebar)',
         borderBottom: '1px solid var(--border)',
-        paddingLeft: isMac ? 80 : 8,
+        paddingLeft: isMac ? 80 : 6,
         paddingRight: 12,
         flexShrink: 0,
         fontSize: 13,
@@ -107,21 +106,21 @@ export function MenuBar({ projectName, onOpenFolder, onSave, onOpenSettings }: M
         zIndex: 100
       }}
     >
+      {/* Menu items */}
       {menus.map(menu => (
         <div key={menu.label} className="no-drag" style={{ position: 'relative' }}>
           <button
             onClick={() => setOpenMenu(openMenu === menu.label ? null : menu.label)}
             style={{
-              padding: '0 10px',
-              height: 30,
-              background: openMenu === menu.label ? 'rgba(255,255,255,0.1)' : 'none',
+              padding: '0 9px',
+              height: 32,
+              background: openMenu === menu.label ? 'rgba(0,0,0,0.08)' : 'none',
               color: 'var(--text-secondary)',
-              fontSize: 13,
+              fontSize: 12,
               borderRadius: 0
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-              // If another menu is open, switch to this one
+              e.currentTarget.style.background = 'rgba(0,0,0,0.06)'
               if (openMenu && openMenu !== menu.label) setOpenMenu(menu.label)
             }}
             onMouseLeave={e => {
@@ -139,8 +138,8 @@ export function MenuBar({ projectName, onOpenFolder, onSave, onOpenSettings }: M
               minWidth: 220,
               background: 'var(--bg-secondary)',
               border: '1px solid var(--border)',
-              borderRadius: 4,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              borderRadius: 'var(--radius-md)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.08)',
               zIndex: 1000,
               padding: '4px 0'
             }}>
@@ -149,7 +148,7 @@ export function MenuBar({ projectName, onOpenFolder, onSave, onOpenSettings }: M
                   <div key={i} style={{
                     height: 1,
                     background: 'var(--border)',
-                    margin: '4px 0'
+                    margin: '3px 0'
                   }} />
                 ) : (
                   <div
@@ -159,13 +158,13 @@ export function MenuBar({ projectName, onOpenFolder, onSave, onOpenSettings }: M
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      padding: '5px 16px',
+                      padding: '5px 14px',
                       color: item.action ? 'var(--text-primary)' : 'var(--text-muted)',
-                      fontSize: 13,
+                      fontSize: 12,
                       cursor: item.action ? 'pointer' : 'default'
                     }}
                     onMouseEnter={e => {
-                      if (item.action) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+                      if (item.action) e.currentTarget.style.background = 'var(--kode-selection)'
                     }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
                   >
@@ -182,6 +181,24 @@ export function MenuBar({ projectName, onOpenFolder, onSave, onOpenSettings }: M
           )}
         </div>
       ))}
+
+      {/* Centered KODE label (absolute) */}
+      <div style={{
+        position: 'absolute',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        pointerEvents: 'none'
+      }}>
+        <span style={{
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: '0.18em',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase'
+        }}>
+          KODE
+        </span>
+      </div>
 
       <div style={{ flex: 1 }} />
 

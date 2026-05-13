@@ -47,7 +47,7 @@ describe('SettingsPanel', () => {
 
   it('shows custom color pickers when Custom theme selected', () => {
     render(<SettingsPanel {...defaultProps} theme="custom" />)
-    expect(screen.getByLabelText(/primary color/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/accent color/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/background hex/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/accent hex/i)).toBeInTheDocument()
   })
 })

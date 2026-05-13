@@ -238,8 +238,8 @@ export function ProviderSettings({
             style={{
               width: '100%',
               padding: '10px 0',
-              background: 'var(--bg-button)',
-              color: 'var(--bg-secondary)',
+              background: 'var(--kode-btn)',
+              color: 'var(--kode-btn-fg)',
               borderRadius: 'var(--radius-md)',
               fontSize: 13,
               fontWeight: 500,

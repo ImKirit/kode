@@ -5,7 +5,6 @@ export interface ThemeVars {
   '--bg-secondary': string
   '--bg-sidebar': string
   '--bg-input': string
-  '--bg-button': string
   '--bg-tab-active': string
   '--bg-tab-inactive': string
   '--border': string
@@ -14,29 +13,40 @@ export interface ThemeVars {
   '--text-secondary': string
   '--text-muted': string
   '--accent': string
-  '--shadow-button': string
-  '--shadow-button-hover': string
-  '--shadow-button-active': string
+  '--kode-btn': string
+  '--kode-btn-fg': string
+  '--kode-btn-hover': string
+  '--kode-surface-2': string
+  '--kode-border-dim': string
+  '--kode-titlebar': string
+  '--kode-statusbar': string
+  '--kode-scrollbar': string
+  '--kode-selection': string
   '--monaco-theme': string
 }
 
 export const lightTheme: ThemeVars = {
-  '--bg-primary':      '#f5f5f5',
+  '--bg-primary':      '#f3f3f3',
   '--bg-secondary':    '#ffffff',
-  '--bg-sidebar':      '#ebebeb',
+  '--bg-sidebar':      '#f3f3f3',
   '--bg-input':        '#ffffff',
-  '--bg-button':       '#1a1a1a',
   '--bg-tab-active':   '#ffffff',
-  '--bg-tab-inactive': '#e8e8e8',
-  '--border':          '#d8d8d8',
-  '--border-light':    '#c0c0c0',
+  '--bg-tab-inactive': '#ececec',
+  '--border':          '#e0e0e0',
+  '--border-light':    '#ebebeb',
   '--text-primary':    '#1a1a1a',
-  '--text-secondary':  '#4a4a4a',
-  '--text-muted':      '#8a8a8a',
-  '--accent':          '#0e9de8',
-  '--shadow-button':       '0 2px 0 rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.08)',
-  '--shadow-button-hover': '0 4px 0 rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.12)',
-  '--shadow-button-active':'0 0px 0 rgba(0,0,0,0.14), inset 0 1px 3px rgba(0,0,0,0.10)',
+  '--text-secondary':  '#555555',
+  '--text-muted':      '#999999',
+  '--accent':          '#0066b8',
+  '--kode-btn':        '#1a1a1a',
+  '--kode-btn-fg':     '#ffffff',
+  '--kode-btn-hover':  '#333333',
+  '--kode-surface-2':  '#f5f5f5',
+  '--kode-border-dim': '#ebebeb',
+  '--kode-titlebar':   '#e8e8e8',
+  '--kode-statusbar':  '#1a1a1a',
+  '--kode-scrollbar':  '#cccccc',
+  '--kode-selection':  'rgba(0, 102, 184, 0.12)',
   '--monaco-theme':    'vs',
 }
 
@@ -45,7 +55,6 @@ export const darkTheme: ThemeVars = {
   '--bg-secondary':    '#252526',
   '--bg-sidebar':      '#1a1a1a',
   '--bg-input':        '#2a2a2a',
-  '--bg-button':       '#f0f0f0',
   '--bg-tab-active':   '#1e1e1e',
   '--bg-tab-inactive': '#2d2d2d',
   '--border':          '#3a3a3a',
@@ -54,9 +63,15 @@ export const darkTheme: ThemeVars = {
   '--text-secondary':  '#a0a0a0',
   '--text-muted':      '#606060',
   '--accent':          '#0e9de8',
-  '--shadow-button':       '0 2px 0 rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3)',
-  '--shadow-button-hover': '0 4px 0 rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)',
-  '--shadow-button-active':'0 0px 0 rgba(0,0,0,0.4), inset 0 1px 3px rgba(0,0,0,0.3)',
+  '--kode-btn':        '#e8e8e8',
+  '--kode-btn-fg':     '#1a1a1a',
+  '--kode-btn-hover':  '#ffffff',
+  '--kode-surface-2':  '#2a2a2a',
+  '--kode-border-dim': '#333333',
+  '--kode-titlebar':   '#2d2d2d',
+  '--kode-statusbar':  '#1a1a1a',
+  '--kode-scrollbar':  '#555555',
+  '--kode-selection':  'rgba(14, 157, 232, 0.15)',
   '--monaco-theme':    'vs-dark',
 }
 
@@ -94,24 +109,23 @@ export function buildCustomTheme(primary: string, accent: string): ThemeVars {
     '--bg-secondary':    secondary,
     '--bg-sidebar':      sidebar,
     '--bg-input':        input,
-    '--bg-button':       isDark ? '#f0f0f0' : '#1a1a1a',
     '--bg-tab-active':   secondary,
     '--bg-tab-inactive': tabInactive,
     '--border':          isDark ? adjustHex(primary, 25) : adjustHex(primary, -20),
     '--border-light':    isDark ? adjustHex(primary, 35) : adjustHex(primary, -30),
     '--text-primary':    isDark ? '#f0f0f0' : '#1a1a1a',
-    '--text-secondary':  isDark ? '#a0a0a0' : '#4a4a4a',
-    '--text-muted':      isDark ? '#606060' : '#8a8a8a',
+    '--text-secondary':  isDark ? '#a0a0a0' : '#555555',
+    '--text-muted':      isDark ? '#606060' : '#999999',
     '--accent':          accent,
-    '--shadow-button':       isDark
-      ? '0 2px 0 rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3)'
-      : '0 2px 0 rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.08)',
-    '--shadow-button-hover': isDark
-      ? '0 4px 0 rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)'
-      : '0 4px 0 rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.12)',
-    '--shadow-button-active': isDark
-      ? '0 0px 0 rgba(0,0,0,0.4), inset 0 1px 3px rgba(0,0,0,0.3)'
-      : '0 0px 0 rgba(0,0,0,0.14), inset 0 1px 3px rgba(0,0,0,0.10)',
+    '--kode-btn':        isDark ? '#e8e8e8' : '#1a1a1a',
+    '--kode-btn-fg':     isDark ? '#1a1a1a' : '#ffffff',
+    '--kode-btn-hover':  isDark ? '#ffffff' : '#333333',
+    '--kode-surface-2':  adjustHex(primary, isDark ? 15 : -5),
+    '--kode-border-dim': adjustHex(primary, isDark ? 20 : -12),
+    '--kode-titlebar':   adjustHex(primary, isDark ? 15 : -12),
+    '--kode-statusbar':  '#1a1a1a',
+    '--kode-scrollbar':  isDark ? '#555555' : '#cccccc',
+    '--kode-selection':  isDark ? 'rgba(14, 157, 232, 0.15)' : 'rgba(0, 102, 184, 0.12)',
     '--monaco-theme':    isDark ? 'vs-dark' : 'vs',
   }
 }

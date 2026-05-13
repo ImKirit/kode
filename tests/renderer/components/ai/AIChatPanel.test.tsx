@@ -93,7 +93,7 @@ beforeEach(() => {
 describe('AIChatPanel', () => {
   it('renders the AI Agent header', () => {
     render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
-    expect(screen.getByText('AI Agent')).toBeInTheDocument()
+    expect(screen.getByText('Chat')).toBeInTheDocument()
   })
 
   it('shows settings gear button', () => {

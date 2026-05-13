@@ -167,6 +167,21 @@ export function App() {
           />
         }
         bottomPanel={<BottomPanel rootPath={project.rootPath} />}
+        statusBar={
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            height: '100%',
+            padding: '0 12px',
+            gap: 16,
+            fontSize: 11,
+            color: 'rgba(255,255,255,0.65)'
+          }}>
+            <span>main</span>
+            <div style={{ flex: 1 }} />
+            {project.name && <span>{project.name}</span>}
+          </div>
+        }
       />
 
       <SettingsPanel
