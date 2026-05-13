@@ -96,6 +96,12 @@ export function AIChatPanel({
     }
   }, [handleSend])
 
+  const [weekTokens, setWeekTokens] = useState<number | null>(null)
+
+  useEffect(() => {
+    window.kode.usage?.getStats().then(s => setWeekTokens(s.week)).catch(() => {})
+  }, [sessionTokens])
+
   const isBlocked = isStreaming || retryCountdown !== null
   const displayModel = settings?.providers[settings.activeProvider]?.model ?? ''
   const modelLabel = displayModel ? displayModel.split('-').slice(0, 3).join('-') : ''
@@ -404,27 +410,43 @@ export function AIChatPanel({
         </div>
 
         {/* Usage bar */}
-        {sessionTokens > 0 && (
+        {(sessionTokens > 0 || weekTokens !== null) && (
           <div style={{
             padding: '4px 12px 6px',
             borderTop: '1px solid var(--kode-border-dim)',
-            display: 'flex', flexDirection: 'column', gap: 3
+            display: 'flex', flexDirection: 'column', gap: 4
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Context</span>
-              <span style={{ fontSize: 10, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-                {sessionTokens.toLocaleString()} / {(contextWindow / 1000).toFixed(0)}k tokens ({contextPct}%)
-              </span>
-            </div>
-            <div style={{ height: 2, background: 'var(--border)', borderRadius: 1, overflow: 'hidden' }}>
-              <div style={{
-                height: '100%',
-                width: `${contextPct}%`,
-                background: contextPct > 85 ? '#f87171' : contextPct > 60 ? '#f59e0b' : 'var(--accent)',
-                borderRadius: 1,
-                transition: 'width 0.3s'
-              }} />
-            </div>
+            {sessionTokens > 0 && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Context</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    {sessionTokens.toLocaleString()} / {(contextWindow / 1000).toFixed(0)}k tokens ({contextPct}%)
+                  </span>
+                </div>
+                <div style={{ height: 2, background: 'var(--border)', borderRadius: 1, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${contextPct}%`,
+                    background: contextPct > 85 ? '#f87171' : contextPct > 60 ? '#f59e0b' : 'var(--accent)',
+                    borderRadius: 1,
+                    transition: 'width 0.3s'
+                  }} />
+                </div>
+              </>
+            )}
+            {weekTokens !== null && weekTokens > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>This week</span>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                  {weekTokens >= 1_000_000
+                    ? `${(weekTokens / 1_000_000).toFixed(1)}M`
+                    : weekTokens >= 1_000
+                      ? `${(weekTokens / 1_000).toFixed(1)}k`
+                      : weekTokens.toLocaleString()} tokens
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>

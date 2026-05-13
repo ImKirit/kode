@@ -6,6 +6,7 @@ import { McpSettings } from './McpSettings'
 import { KeybindingsSettings } from './KeybindingsSettings'
 import { GitHubSettings } from './GitHubSettings'
 import { DeploySettings } from './DeploySettings'
+import { AccountSettings } from './AccountSettings'
 import type { ThemeName } from '../../styles/themes'
 import type { McpServerConfig } from '../../types/electron'
 import type { KeybindingAction } from '../../styles/keybindings'
@@ -36,7 +37,7 @@ export function SettingsPanel({
   mcpServers, mcpPermission, onAddMcpServer, onRemoveMcpServer, onSetMcpPermission,
   keybindings, onSetKeybinding, editorConfig, onSetEditorConfig, currentFolder
 }: SettingsPanelProps) {
-  const [activeTab, setActiveTab] = useState<'appearance' | 'editor' | 'mcp' | 'keybindings' | 'github' | 'deploy'>('appearance')
+  const [activeTab, setActiveTab] = useState<'appearance' | 'editor' | 'mcp' | 'keybindings' | 'github' | 'deploy' | 'account'>('appearance')
 
   if (!open) return null
 
@@ -156,7 +157,7 @@ export function SettingsPanel({
             flexShrink: 0,
             background: 'var(--bg-sidebar)'
           }}>
-            {(['appearance', 'editor', 'mcp', 'keybindings', 'github', 'deploy'] as const).map(tab => (
+            {(['appearance', 'editor', 'mcp', 'keybindings', 'github', 'deploy', 'account'] as const).map(tab => (
               <button
                 key={tab}
                 data-flat
@@ -180,7 +181,8 @@ export function SettingsPanel({
                   : tab === 'mcp' ? 'MCP'
                   : tab === 'keybindings' ? 'Keybindings'
                   : tab === 'github' ? 'GitHub'
-                  : 'Deploy'}
+                  : tab === 'deploy' ? 'Deploy'
+                  : 'Account'}
               </button>
             ))}
           </div>
@@ -219,6 +221,9 @@ export function SettingsPanel({
             )}
             {activeTab === 'deploy' && (
               <DeploySettings />
+            )}
+            {activeTab === 'account' && (
+              <AccountSettings />
             )}
           </div>
         </div>

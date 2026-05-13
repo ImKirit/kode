@@ -181,6 +181,24 @@ contextBridge.exposeInMainWorld('kode', {
     execute: (command: string): Promise<{ ok: boolean; output?: string; error?: string }> =>
       ipcRenderer.invoke('deploy:execute', command),
   },
+  usage: {
+    add: (count: number): Promise<void> =>
+      ipcRenderer.invoke('usage:add', count),
+    getStats: (): Promise<{ today: number; week: number; allTime: number; byDay: Record<string, number> }> =>
+      ipcRenderer.invoke('usage:getStats'),
+  },
+  auth: {
+    getSession: (): Promise<{ token: string; email: string; name?: string; plan?: string } | null> =>
+      ipcRenderer.invoke('auth:getSession'),
+    login: (email: string, password: string): Promise<{ ok: boolean; error?: string; email?: string; name?: string; plan?: string }> =>
+      ipcRenderer.invoke('auth:login', email, password),
+    signup: (email: string, password: string): Promise<{ ok: boolean; error?: string; email?: string; name?: string; plan?: string }> =>
+      ipcRenderer.invoke('auth:signup', email, password),
+    logout: (): Promise<void> =>
+      ipcRenderer.invoke('auth:logout'),
+    getToken: (): Promise<string | null> =>
+      ipcRenderer.invoke('auth:getToken'),
+  },
   setTitle: (title: string): void => ipcRenderer.send('window:setTitle', title),
   mcp: {
     listTools: (): Promise<unknown[]> =>

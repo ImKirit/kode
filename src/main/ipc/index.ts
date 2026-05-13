@@ -17,6 +17,8 @@ import { registerSettingsExportImportHandlers } from './settingsExportImport'
 import { registerChatHandlers } from './chat'
 import { registerGithubHandlers } from './github'
 import { registerDeployHandlers } from './deploy'
+import { registerUsageHandlers } from './usage'
+import { registerAuthHandlers } from './auth'
 import { mcpManager } from '../mcp/McpManager'
 
 export function registerIpcHandlers(): void {
@@ -38,6 +40,8 @@ export function registerIpcHandlers(): void {
   registerChatHandlers()
   registerGithubHandlers()
   registerDeployHandlers()
+  registerUsageHandlers()
+  registerAuthHandlers()
 
   // Connect any user-configured MCP servers from saved settings
   const savedSettings = loadSettings()

@@ -142,7 +142,9 @@ export function useScheduler(): UseSchedulerResult {
     })
 
     const unUsage = window.kode.ai.onUsage(({ inputTokens, outputTokens }) => {
-      setSessionTokens(t => t + inputTokens + outputTokens)
+      const total = inputTokens + outputTokens
+      setSessionTokens(t => t + total)
+      window.kode.usage.add(total).catch(() => {})
     })
 
     return () => {

@@ -89,6 +89,9 @@ beforeEach(() => {
   mockOnToggleAutoFollow.mockClear()
   mockUseScheduler.mockReturnValue(defaultSchedulerState())
   mockUseSettings.mockReturnValue(defaultSettingsState())
+  ;(window as unknown as { kode: unknown }).kode = {
+    usage: { getStats: vi.fn().mockResolvedValue({ today: 0, week: 0, allTime: 0, byDay: {} }) }
+  }
 })
 
 describe('AIChatPanel', () => {
