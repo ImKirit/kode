@@ -6,15 +6,26 @@ import { ChatMessage } from './ChatMessage'
 import { ProviderSettings } from './ProviderSettings'
 import { QueueDisplay } from './QueueDisplay'
 import { PermissionDialog } from './PermissionDialog'
+import type { ChatSession } from '../../types/electron'
 
 interface AIChatPanelProps {
   autoFollowEnabled: boolean
   onToggleAutoFollow(): void
   systemPrompt?: string
   hasClaudeContext?: boolean
+  currentSessionId?: string | null
+  activeProvider?: string
+  activeModel?: string
+  onCreateSession?(name: string, provider: string, model: string): Promise<ChatSession>
+  onSetSessionId?(id: string): void
+  onSaveMessage?(sessionId: string, role: string, content: string): Promise<void>
 }
 
-export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow, systemPrompt, hasClaudeContext }: AIChatPanelProps) {
+export function AIChatPanel({
+  autoFollowEnabled, onToggleAutoFollow, systemPrompt, hasClaudeContext,
+  currentSessionId, activeProvider = '', activeModel = '',
+  onCreateSession, onSetSessionId, onSaveMessage
+}: AIChatPanelProps) {
   const {
     messages, isStreaming, error, retryCountdown, queue,
     sendOrEnqueue, stop, clearMessages, removeFromQueue, clearQueue,
@@ -24,6 +35,13 @@ export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow, systemPromp
   const [input, setInput] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const sessionIdRef = useRef<string | null>(currentSessionId ?? null)
+
+  useEffect(() => {
+    sessionIdRef.current = currentSessionId ?? null
+  }, [currentSessionId])
+
+  const prevStreamingRef = useRef(false)
 
   useEffect(() => {
     const el = messagesEndRef.current
@@ -32,11 +50,36 @@ export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow, systemPromp
     }
   }, [messages])
 
-  const handleSend = useCallback(() => {
+  useEffect(() => {
+    if (prevStreamingRef.current && !isStreaming && sessionIdRef.current && onSaveMessage) {
+      const last = messages[messages.length - 1]
+      if (last?.role === 'assistant' && last.content) {
+        onSaveMessage(sessionIdRef.current, 'assistant', last.content).catch(() => {})
+      }
+    }
+    prevStreamingRef.current = isStreaming
+  }, [isStreaming, messages, onSaveMessage])
+
+  const handleSend = useCallback(async () => {
     if (!input.trim()) return
-    sendOrEnqueue(input, systemPrompt)
+    const text = input
     setInput('')
-  }, [input, sendOrEnqueue, systemPrompt])
+
+    let sid = sessionIdRef.current
+    if (!sid && onCreateSession && onSetSessionId) {
+      const truncated = text.slice(0, 40).trim()
+      const session = await onCreateSession(truncated, activeProvider, activeModel)
+      sid = session.id
+      sessionIdRef.current = sid
+      onSetSessionId(sid)
+    }
+
+    sendOrEnqueue(text, systemPrompt)
+
+    if (sid && onSaveMessage) {
+      onSaveMessage(sid, 'user', text).catch(() => {})
+    }
+  }, [input, sendOrEnqueue, systemPrompt, onCreateSession, onSetSessionId, onSaveMessage, activeProvider, activeModel])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -46,8 +89,8 @@ export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow, systemPromp
   }, [handleSend])
 
   const isBlocked = isStreaming || retryCountdown !== null
-  const activeModel = settings?.providers[settings.activeProvider]?.model ?? ''
-  const modelLabel = activeModel.split('-').slice(0, 3).join('-')
+  const displayModel = settings?.providers[settings.activeProvider]?.model ?? ''
+  const modelLabel = displayModel.split('-').slice(0, 3).join('-')
 
   return (
     <div style={{
@@ -77,7 +120,7 @@ export function AIChatPanel({ autoFollowEnabled, onToggleAutoFollow, systemPromp
           AI Agent
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {activeModel && (
+          {displayModel && (
             <span style={{
               fontSize: 10,
               color: 'var(--text-muted)',

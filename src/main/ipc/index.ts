@@ -14,6 +14,7 @@ import { registerClaudeHandlers } from './claude'
 import { registerMcpHandlers } from './mcp'
 import { registerPluginHandlers } from './plugins'
 import { registerSettingsExportImportHandlers } from './settingsExportImport'
+import { registerChatHandlers } from './chat'
 import { mcpManager } from '../mcp/McpManager'
 
 export function registerIpcHandlers(): void {
@@ -32,6 +33,7 @@ export function registerIpcHandlers(): void {
   registerMcpHandlers()
   registerPluginHandlers()
   registerSettingsExportImportHandlers()
+  registerChatHandlers()
 
   // Connect any user-configured MCP servers from saved settings
   const savedSettings = loadSettings()

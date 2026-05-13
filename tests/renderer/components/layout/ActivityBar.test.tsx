@@ -1,13 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ActivityBar } from '@renderer/components/layout/ActivityBar'
 
 function makeProps(overrides = {}) {
   return {
     sidebarVisible: true,
+    sidebarView: 'files' as const,
     aiPanelVisible: true,
     bottomPanelVisible: true,
     onToggleSidebar: vi.fn(),
+    onShowThreads: vi.fn(),
     onToggleAiPanel: vi.fn(),
     onToggleBottomPanel: vi.fn(),
     ...overrides
@@ -23,6 +25,11 @@ describe('ActivityBar', () => {
   it('renders Toggle Explorer button', () => {
     render(<ActivityBar {...makeProps()} />)
     expect(screen.getByRole('button', { name: /toggle explorer/i })).toBeInTheDocument()
+  })
+
+  it('renders Toggle Threads button', () => {
+    render(<ActivityBar {...makeProps()} />)
+    expect(screen.getByRole('button', { name: /toggle threads/i })).toBeInTheDocument()
   })
 
   it('renders Toggle AI Panel button', () => {
@@ -42,6 +49,13 @@ describe('ActivityBar', () => {
     expect(props.onToggleSidebar).toHaveBeenCalledTimes(1)
   })
 
+  it('calls onShowThreads when Threads button is clicked', () => {
+    const props = makeProps()
+    render(<ActivityBar {...props} />)
+    fireEvent.click(screen.getByRole('button', { name: /toggle threads/i }))
+    expect(props.onShowThreads).toHaveBeenCalledTimes(1)
+  })
+
   it('calls onToggleAiPanel when AI Panel button is clicked', () => {
     const props = makeProps()
     render(<ActivityBar {...props} />)
@@ -56,10 +70,16 @@ describe('ActivityBar', () => {
     expect(props.onToggleBottomPanel).toHaveBeenCalledTimes(1)
   })
 
-  it('sets aria-pressed=true on Explorer when sidebar is visible', () => {
-    render(<ActivityBar {...makeProps({ sidebarVisible: true })} />)
+  it('sets aria-pressed=true on Explorer when sidebar visible and view is files', () => {
+    render(<ActivityBar {...makeProps({ sidebarVisible: true, sidebarView: 'files' })} />)
     expect(screen.getByRole('button', { name: /toggle explorer/i }))
       .toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('sets aria-pressed=false on Explorer when sidebarView is threads', () => {
+    render(<ActivityBar {...makeProps({ sidebarVisible: true, sidebarView: 'threads' })} />)
+    expect(screen.getByRole('button', { name: /toggle explorer/i }))
+      .toHaveAttribute('aria-pressed', 'false')
   })
 
   it('sets aria-pressed=false on Explorer when sidebar is hidden', () => {

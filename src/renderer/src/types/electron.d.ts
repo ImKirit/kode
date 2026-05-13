@@ -47,6 +47,31 @@ export interface ToolApprovalRequest {
   args: Record<string, unknown>
 }
 
+export interface ChatSession {
+  id: string
+  name: string
+  provider: string
+  model: string
+  created_at: number
+  updated_at: number
+  archived: number
+}
+
+export interface ChatMessage {
+  id: string
+  session_id: string
+  role: string
+  content: string
+  tokens: number | null
+  cost: number | null
+  created_at: number
+}
+
+export interface SearchResult {
+  session: ChatSession
+  snippet: string
+}
+
 export interface PluginMeta {
   id: string
   name: string
@@ -137,6 +162,17 @@ declare global {
         search(query: string): Promise<PluginSearchResult[]>
         install(id: string): Promise<void>
         uninstall(id: string): Promise<void>
+      }
+      chat: {
+        getSessions(): Promise<ChatSession[]>
+        createSession(id: string, name: string, provider: string, model: string): Promise<ChatSession>
+        updateSession(id: string, name: string): Promise<void>
+        archiveSession(id: string): Promise<void>
+        deleteSession(id: string): Promise<void>
+        getMessages(sessionId: string): Promise<ChatMessage[]>
+        addMessage(id: string, sessionId: string, role: string, content: string, tokens?: number, cost?: number): Promise<ChatMessage>
+        search(query: string): Promise<SearchResult[]>
+        addFileChange(id: string, sessionId: string, filePath: string, diff: string): Promise<void>
       }
     }
   }

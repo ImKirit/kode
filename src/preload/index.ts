@@ -139,4 +139,24 @@ contextBridge.exposeInMainWorld('kode', {
     uninstall: (id: string): Promise<void> =>
       ipcRenderer.invoke('plugin:uninstall', id),
   },
+  chat: {
+    getSessions: (): Promise<unknown[]> =>
+      ipcRenderer.invoke('chat:getSessions'),
+    createSession: (id: string, name: string, provider: string, model: string): Promise<unknown> =>
+      ipcRenderer.invoke('chat:createSession', id, name, provider, model),
+    updateSession: (id: string, name: string): Promise<void> =>
+      ipcRenderer.invoke('chat:updateSession', id, name),
+    archiveSession: (id: string): Promise<void> =>
+      ipcRenderer.invoke('chat:archiveSession', id),
+    deleteSession: (id: string): Promise<void> =>
+      ipcRenderer.invoke('chat:deleteSession', id),
+    getMessages: (sessionId: string): Promise<unknown[]> =>
+      ipcRenderer.invoke('chat:getMessages', sessionId),
+    addMessage: (id: string, sessionId: string, role: string, content: string, tokens?: number, cost?: number): Promise<unknown> =>
+      ipcRenderer.invoke('chat:addMessage', id, sessionId, role, content, tokens, cost),
+    search: (query: string): Promise<unknown[]> =>
+      ipcRenderer.invoke('chat:search', query),
+    addFileChange: (id: string, sessionId: string, filePath: string, diff: string): Promise<void> =>
+      ipcRenderer.invoke('chat:addFileChange', id, sessionId, filePath, diff),
+  },
 })

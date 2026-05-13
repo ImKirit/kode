@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useProject } from './hooks/useProject'
 import { usePanelLayout } from './hooks/usePanelLayout'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
@@ -6,12 +6,14 @@ import { useAutoFollow } from './hooks/useAutoFollow'
 import { useTheme } from './hooks/useTheme'
 import { useSettings } from './hooks/useSettings'
 import { useClaudeContext } from './hooks/useClaudeContext'
+import { useChatHistory } from './hooks/useChatHistory'
 import { AppLayout } from './components/layout/AppLayout'
 import { ActivityBar } from './components/layout/ActivityBar'
 import { MenuBar } from './components/layout/MenuBar'
 import { FileTree } from './components/filetree/FileTree'
 import { EditorArea } from './components/editor/EditorArea'
 import { AIChatPanel } from './components/ai/AIChatPanel'
+import { ThreadsPanel } from './components/ai/ThreadsPanel'
 import { BottomPanel } from './components/layout/BottomPanel'
 import { SettingsPanel } from './components/settings/SettingsPanel'
 import { PluginBrowser } from './components/plugins/PluginBrowser'
@@ -19,6 +21,7 @@ import { PluginBrowser } from './components/plugins/PluginBrowser'
 export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [pluginBrowserOpen, setPluginBrowserOpen] = useState(false)
+  const [sidebarView, setSidebarView] = useState<'files' | 'threads'>('files')
 
   const themeState = useTheme()
   const { settings, addMcpServer, removeMcpServer, setMcpPermission, setKeybinding } = useSettings()
@@ -47,6 +50,8 @@ export function App() {
 
   const { systemPrompt, hasContext } = useClaudeContext(project.rootPath ?? null)
 
+  const chatHistory = useChatHistory()
+
   useKeyboardShortcuts({
     onToggleSidebar: layout.toggleSidebar,
     onToggleBottomPanel: layout.toggleBottomPanel,
@@ -56,6 +61,36 @@ export function App() {
     onOpenSettings: () => setSettingsOpen(true),
     keybindings: settings?.keybindings
   })
+
+  const handleToggleSidebar = useCallback(() => {
+    if (sidebarView !== 'files') {
+      setSidebarView('files')
+      if (!layout.sidebarVisible) layout.toggleSidebar()
+    } else {
+      layout.toggleSidebar()
+    }
+  }, [sidebarView, layout])
+
+  const handleShowThreads = useCallback(() => {
+    if (sidebarView !== 'threads') {
+      setSidebarView('threads')
+      if (!layout.sidebarVisible) layout.toggleSidebar()
+    } else {
+      layout.toggleSidebar()
+    }
+  }, [sidebarView, layout])
+
+  const activeProvider = settings?.activeProvider ?? 'anthropic'
+  const activeModel = settings?.providers[activeProvider]?.model ?? ''
+
+  const handleNewThread = useCallback(async () => {
+    const session = await chatHistory.createSession(
+      'New Thread',
+      activeProvider,
+      activeModel
+    )
+    chatHistory.setCurrentSessionId(session.id)
+  }, [chatHistory, activeProvider, activeModel])
 
   return (
     <>
@@ -72,21 +107,39 @@ export function App() {
         activityBar={
           <ActivityBar
             sidebarVisible={layout.sidebarVisible}
+            sidebarView={sidebarView}
             aiPanelVisible={layout.aiPanelVisible}
             bottomPanelVisible={layout.bottomPanelVisible}
             pluginBrowserOpen={pluginBrowserOpen}
-            onToggleSidebar={layout.toggleSidebar}
+            onToggleSidebar={handleToggleSidebar}
+            onShowThreads={handleShowThreads}
             onToggleAiPanel={layout.toggleAiPanel}
             onToggleBottomPanel={layout.toggleBottomPanel}
             onTogglePluginBrowser={() => setPluginBrowserOpen(v => !v)}
           />
         }
         sidebar={
-          <FileTree
-            rootPath={project.rootPath}
-            activeFilePath={activeFilePath}
-            onOpenFile={openFile}
-          />
+          sidebarView === 'threads' ? (
+            <ThreadsPanel
+              sessions={chatHistory.sessions}
+              currentSessionId={chatHistory.currentSessionId}
+              searchResults={chatHistory.searchResults}
+              searchQuery={chatHistory.searchQuery}
+              onSelect={chatHistory.setCurrentSessionId}
+              onNew={handleNewThread}
+              onRename={chatHistory.renameSession}
+              onArchive={chatHistory.archiveSession}
+              onDelete={chatHistory.deleteSession}
+              onSearch={chatHistory.search}
+              onClearSearch={chatHistory.clearSearch}
+            />
+          ) : (
+            <FileTree
+              rootPath={project.rootPath}
+              activeFilePath={activeFilePath}
+              onOpenFile={openFile}
+            />
+          )
         }
         editor={
           <EditorArea
@@ -105,6 +158,12 @@ export function App() {
             onToggleAutoFollow={autoFollow.toggle}
             systemPrompt={systemPrompt ?? undefined}
             hasClaudeContext={hasContext}
+            currentSessionId={chatHistory.currentSessionId}
+            onCreateSession={chatHistory.createSession}
+            onSetSessionId={chatHistory.setCurrentSessionId}
+            onSaveMessage={chatHistory.saveMessage}
+            activeProvider={activeProvider}
+            activeModel={activeModel}
           />
         }
         bottomPanel={<BottomPanel rootPath={project.rootPath} />}

@@ -1,11 +1,13 @@
-import { Files, Terminal, MessageSquare, Package } from 'lucide-react'
+import { Files, Terminal, MessageSquare, Package, Clock } from 'lucide-react'
 
 interface ActivityBarProps {
   sidebarVisible: boolean
+  sidebarView: 'files' | 'threads'
   aiPanelVisible: boolean
   bottomPanelVisible: boolean
   pluginBrowserOpen?: boolean
   onToggleSidebar(): void
+  onShowThreads(): void
   onToggleAiPanel(): void
   onToggleBottomPanel(): void
   onTogglePluginBrowser?(): void
@@ -49,10 +51,12 @@ function ActivityBarButton({ icon, active, label, onClick }: BtnProps) {
 
 export function ActivityBar({
   sidebarVisible,
+  sidebarView,
   aiPanelVisible,
   bottomPanelVisible,
   pluginBrowserOpen = false,
   onToggleSidebar,
+  onShowThreads,
   onToggleAiPanel,
   onToggleBottomPanel,
   onTogglePluginBrowser
@@ -73,9 +77,15 @@ export function ActivityBar({
     >
       <ActivityBarButton
         icon={<Files size={18} />}
-        active={sidebarVisible}
+        active={sidebarVisible && sidebarView === 'files'}
         label="Toggle Explorer"
         onClick={onToggleSidebar}
+      />
+      <ActivityBarButton
+        icon={<Clock size={18} />}
+        active={sidebarVisible && sidebarView === 'threads'}
+        label="Toggle Threads"
+        onClick={onShowThreads}
       />
       <ActivityBarButton
         icon={<MessageSquare size={18} />}
