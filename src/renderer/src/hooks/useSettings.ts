@@ -7,6 +7,22 @@ export interface ProviderConfig {
   model: string
 }
 
+export interface EditorConfig {
+  fontSize: number
+  tabSize: number
+  wordWrap: 'on' | 'off'
+  minimap: boolean
+  lineNumbers: 'on' | 'off' | 'relative'
+}
+
+export const DEFAULT_EDITOR_CONFIG: EditorConfig = {
+  fontSize: 13,
+  tabSize: 2,
+  wordWrap: 'off',
+  minimap: true,
+  lineNumbers: 'on'
+}
+
 export interface AppSettings {
   activeProvider: 'anthropic' | 'openai'
   providers: {
@@ -16,6 +32,7 @@ export interface AppSettings {
   mcpServers: McpServerConfig[]
   mcpPermission: 'ask' | 'full'
   keybindings?: Record<string, string>
+  editor?: EditorConfig
 }
 
 export interface UseSettingsResult {
@@ -29,6 +46,7 @@ export interface UseSettingsResult {
   removeMcpServer(id: string): void
   setMcpPermission(value: 'ask' | 'full'): void
   setKeybinding(action: KeybindingAction, key: string): void
+  setEditorConfig(config: EditorConfig): void
 }
 
 export function useSettings(): UseSettingsResult {
@@ -130,5 +148,14 @@ export function useSettings(): UseSettingsResult {
     })
   }, [])
 
-  return { settings, loading, updateSettings, setActiveProvider, setProviderKey, setProviderModel, addMcpServer, removeMcpServer, setMcpPermission, setKeybinding }
+  const setEditorConfig = useCallback((config: EditorConfig) => {
+    setSettingsState(prev => {
+      if (!prev) return prev
+      const next: AppSettings = { ...prev, editor: config }
+      window.kode.settings.set(next).catch(() => {})
+      return next
+    })
+  }, [])
+
+  return { settings, loading, updateSettings, setActiveProvider, setProviderKey, setProviderModel, addMcpServer, removeMcpServer, setMcpPermission, setKeybinding, setEditorConfig }
 }

@@ -29,7 +29,7 @@ export function AIChatPanel({
   const {
     messages, isStreaming, error, retryCountdown, queue,
     sendOrEnqueue, stop, clearMessages, removeFromQueue, clearQueue,
-    pendingApproval, approveTool, denyTool
+    pendingApproval, approveTool, denyTool, sessionTokens
   } = useScheduler()
   const { settings, setActiveProvider, setProviderKey, setProviderModel } = useSettings()
   const [input, setInput] = useState('')
@@ -99,6 +99,11 @@ export function AIChatPanel({
   const isBlocked = isStreaming || retryCountdown !== null
   const displayModel = settings?.providers[settings.activeProvider]?.model ?? ''
   const modelLabel = displayModel ? displayModel.split('-').slice(0, 3).join('-') : ''
+
+  const contextWindow = displayModel.includes('gpt-4o') ? 128000
+    : displayModel.includes('haiku') ? 200000
+    : 200000
+  const contextPct = Math.min(100, Math.round((sessionTokens / contextWindow) * 100))
 
   return (
     <div style={{
@@ -397,6 +402,31 @@ export function AIChatPanel({
             )}
           </div>
         </div>
+
+        {/* Usage bar */}
+        {sessionTokens > 0 && (
+          <div style={{
+            padding: '4px 12px 6px',
+            borderTop: '1px solid var(--kode-border-dim)',
+            display: 'flex', flexDirection: 'column', gap: 3
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Context</span>
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                {sessionTokens.toLocaleString()} / {(contextWindow / 1000).toFixed(0)}k tokens ({contextPct}%)
+              </span>
+            </div>
+            <div style={{ height: 2, background: 'var(--border)', borderRadius: 1, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${contextPct}%`,
+                background: contextPct > 85 ? '#f87171' : contextPct > 60 ? '#f59e0b' : 'var(--accent)',
+                borderRadius: 1,
+                transition: 'width 0.3s'
+              }} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

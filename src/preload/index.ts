@@ -101,6 +101,11 @@ contextBridge.exposeInMainWorld('kode', {
       ipcRenderer.on('ai:toolApproval', listener)
       return () => ipcRenderer.removeListener('ai:toolApproval', listener)
     },
+    onUsage: (cb: (e: { inputTokens: number; outputTokens: number }) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, e: { inputTokens: number; outputTokens: number }) => cb(e)
+      ipcRenderer.on('ai:usage', listener)
+      return () => ipcRenderer.removeListener('ai:usage', listener)
+    },
     approveTool: (callId: string): void =>
       ipcRenderer.send('ai:approveTool', callId),
     denyTool: (callId: string): void =>
@@ -109,12 +114,72 @@ contextBridge.exposeInMainWorld('kode', {
   git: {
     status: (rootPath: string): Promise<Array<{ path: string; status: string }>> =>
       ipcRenderer.invoke('git:status', rootPath),
+    statusFull: (rootPath: string): Promise<{
+      files: Array<{ path: string; index: string; workingDir: string; staged: boolean; modified: boolean }>
+      ahead: number; behind: number; current: string | null; tracking: string | null
+    }> => ipcRenderer.invoke('git:statusFull', rootPath),
     diff: (rootPath: string, filePath?: string, cached?: boolean): Promise<string> =>
       ipcRenderer.invoke('git:diff', rootPath, filePath, cached),
     stage: (rootPath: string, filePath: string): Promise<void> =>
       ipcRenderer.invoke('git:stage', rootPath, filePath),
+    stageAll: (rootPath: string): Promise<void> =>
+      ipcRenderer.invoke('git:stageAll', rootPath),
+    unstage: (rootPath: string, filePath: string): Promise<void> =>
+      ipcRenderer.invoke('git:unstage', rootPath, filePath),
     commit: (rootPath: string, message: string): Promise<void> =>
-      ipcRenderer.invoke('git:commit', rootPath, message)
+      ipcRenderer.invoke('git:commit', rootPath, message),
+    push: (rootPath: string, remote?: string, branch?: string): Promise<void> =>
+      ipcRenderer.invoke('git:push', rootPath, remote, branch),
+    pull: (rootPath: string, remote?: string, branch?: string): Promise<void> =>
+      ipcRenderer.invoke('git:pull', rootPath, remote, branch),
+    log: (rootPath: string, maxCount?: number): Promise<Array<{ hash: string; message: string; author: string; date: string }>> =>
+      ipcRenderer.invoke('git:log', rootPath, maxCount),
+    branches: (rootPath: string): Promise<{ all: string[]; current: string }> =>
+      ipcRenderer.invoke('git:branches', rootPath),
+    currentBranch: (rootPath: string): Promise<string> =>
+      ipcRenderer.invoke('git:currentBranch', rootPath),
+    init: (rootPath: string): Promise<void> =>
+      ipcRenderer.invoke('git:init', rootPath),
+    addRemote: (rootPath: string, remoteName: string, remoteUrl: string): Promise<void> =>
+      ipcRenderer.invoke('git:addRemote', rootPath, remoteName, remoteUrl),
+    hasRemote: (rootPath: string): Promise<boolean> =>
+      ipcRenderer.invoke('git:hasRemote', rootPath),
+  },
+  github: {
+    hasToken: (): Promise<boolean> =>
+      ipcRenderer.invoke('github:hasToken'),
+    setToken: (token: string): Promise<void> =>
+      ipcRenderer.invoke('github:setToken', token),
+    clearToken: (): Promise<void> =>
+      ipcRenderer.invoke('github:clearToken'),
+    validateToken: (token: string): Promise<{ valid: boolean; user?: { login: string; name: string | null; avatarUrl: string; publicRepos: number }; error?: string }> =>
+      ipcRenderer.invoke('github:validateToken', token),
+    getUser: (): Promise<{ login: string; name: string | null; avatarUrl: string; publicRepos: number } | null> =>
+      ipcRenderer.invoke('github:getUser'),
+    listRepos: (): Promise<Array<{ id: number; name: string; fullName: string; private: boolean; cloneUrl: string; htmlUrl: string; description: string | null; updatedAt: string }>> =>
+      ipcRenderer.invoke('github:listRepos'),
+    createRepo: (opts: { name: string; description: string; private: boolean; autoInit: boolean; gitignoreTemplate: string | null; license: string | null }) =>
+      ipcRenderer.invoke('github:createRepo', opts),
+    getGitignoreTemplates: (): Promise<string[]> =>
+      ipcRenderer.invoke('github:getGitignoreTemplates'),
+    getLinkedRepo: (folderPath: string): Promise<{ owner: string; repo: string; fullName: string; cloneUrl: string; private: boolean } | null> =>
+      ipcRenderer.invoke('github:getLinkedRepo', folderPath),
+    setLinkedRepo: (folderPath: string, repo: { owner: string; repo: string; fullName: string; cloneUrl: string; private: boolean }): Promise<void> =>
+      ipcRenderer.invoke('github:setLinkedRepo', folderPath, repo),
+    unlinkRepo: (folderPath: string): Promise<void> =>
+      ipcRenderer.invoke('github:unlinkRepo', folderPath),
+  },
+  deploy: {
+    getConfig: (): Promise<{ ip: string; user: string; keyPath: string; workDir: string } | null> =>
+      ipcRenderer.invoke('deploy:getConfig'),
+    setConfig: (config: { ip: string; user: string; keyPath: string; workDir: string }): Promise<void> =>
+      ipcRenderer.invoke('deploy:setConfig', config),
+    testConnection: (): Promise<{ ok: boolean; error?: string; info?: string }> =>
+      ipcRenderer.invoke('deploy:testConnection'),
+    setup: (): Promise<{ ok: boolean; output?: string; error?: string }> =>
+      ipcRenderer.invoke('deploy:setup'),
+    execute: (command: string): Promise<{ ok: boolean; output?: string; error?: string }> =>
+      ipcRenderer.invoke('deploy:execute', command),
   },
   setTitle: (title: string): void => ipcRenderer.send('window:setTitle', title),
   mcp: {

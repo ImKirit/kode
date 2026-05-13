@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useProject } from './hooks/useProject'
+import { DEFAULT_EDITOR_CONFIG } from './hooks/useSettings'
 import { usePanelLayout } from './hooks/usePanelLayout'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useAutoFollow } from './hooks/useAutoFollow'
@@ -24,7 +25,7 @@ export function App() {
   const [sidebarView, setSidebarView] = useState<'files' | 'threads'>('files')
 
   const themeState = useTheme()
-  const { settings, addMcpServer, removeMcpServer, setMcpPermission, setKeybinding } = useSettings()
+  const { settings, addMcpServer, removeMcpServer, setMcpPermission, setKeybinding, setEditorConfig } = useSettings()
 
   const {
     project,
@@ -150,6 +151,7 @@ export function App() {
             onContentChange={updateFileContent}
             onSave={saveFile}
             monacoTheme={themeState.monacoTheme}
+            editorConfig={settings?.editor ?? DEFAULT_EDITOR_CONFIG}
           />
         }
         aiPanel={
@@ -199,6 +201,9 @@ export function App() {
         onSetMcpPermission={setMcpPermission}
         keybindings={settings?.keybindings}
         onSetKeybinding={setKeybinding}
+        editorConfig={settings?.editor ?? DEFAULT_EDITOR_CONFIG}
+        onSetEditorConfig={setEditorConfig}
+        currentFolder={project.rootPath}
       />
 
       {pluginBrowserOpen && (

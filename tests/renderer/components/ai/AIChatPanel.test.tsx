@@ -58,6 +58,7 @@ function defaultSchedulerState(overrides = {}) {
     error: null,
     retryCountdown: null,
     queue: [],
+    sessionTokens: 0,
     sendOrEnqueue: mockSendOrEnqueue,
     stop: mockStop,
     clearMessages: mockClearMessages,

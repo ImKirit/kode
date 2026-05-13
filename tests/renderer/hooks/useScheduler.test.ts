@@ -9,6 +9,7 @@ let onRateLimitCb: (ms: number) => void = () => {}
 let onToolCallCb: (e: { callId: string; toolName: string; serverId: string; args: Record<string, unknown> }) => void = () => {}
 let onToolResultCb: (e: { callId: string; result: string; isError: boolean }) => void = () => {}
 let onToolApprovalCb: (e: { callId: string; toolName: string; serverId: string; args: Record<string, unknown> }) => void = () => {}
+let onUsageCb: (e: { inputTokens: number; outputTokens: number }) => void = () => {}
 
 const mockSendMessage = vi.fn().mockResolvedValue(undefined)
 const mockStop = vi.fn()
@@ -23,6 +24,7 @@ beforeEach(() => {
   onToolCallCb = () => {}
   onToolResultCb = () => {}
   onToolApprovalCb = () => {}
+  onUsageCb = () => {}
   mockSendMessage.mockClear()
   mockStop.mockClear()
   mockApproveTool.mockClear()
@@ -49,7 +51,8 @@ beforeEach(() => {
         onRateLimit: (cb: (ms: number) => void) => { onRateLimitCb = cb; return () => {} },
         onToolCall: (cb: (e: { callId: string; toolName: string; serverId: string; args: Record<string, unknown> }) => void) => { onToolCallCb = cb; return () => {} },
         onToolResult: (cb: (e: { callId: string; result: string; isError: boolean }) => void) => { onToolResultCb = cb; return () => {} },
-        onToolApproval: (cb: (e: { callId: string; toolName: string; serverId: string; args: Record<string, unknown> }) => void) => { onToolApprovalCb = cb; return () => {} }
+        onToolApproval: (cb: (e: { callId: string; toolName: string; serverId: string; args: Record<string, unknown> }) => void) => { onToolApprovalCb = cb; return () => {} },
+        onUsage: (cb: (e: { inputTokens: number; outputTokens: number }) => void) => { onUsageCb = cb; return () => {} }
       },
       setTitle: vi.fn()
     },

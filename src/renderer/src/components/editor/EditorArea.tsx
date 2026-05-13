@@ -1,6 +1,7 @@
 import { EditorTab } from './EditorTab'
 import { MonacoEditor } from './MonacoEditor'
 import type { OpenFile } from '../../types'
+import type { EditorConfig } from '../../hooks/useSettings'
 
 interface EditorAreaProps {
   openFiles: OpenFile[]
@@ -10,10 +11,11 @@ interface EditorAreaProps {
   onContentChange(path: string, content: string): void
   onSave(path: string): void
   monacoTheme: string
+  editorConfig?: EditorConfig
 }
 
 export function EditorArea({
-  openFiles, activeFilePath, onActivate, onClose, onContentChange, onSave, monacoTheme
+  openFiles, activeFilePath, onActivate, onClose, onContentChange, onSave, monacoTheme, editorConfig
 }: EditorAreaProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -60,6 +62,7 @@ export function EditorArea({
               filePath={file.path}
               isActive={file.path === activeFilePath}
               monacoTheme={monacoTheme}
+              editorConfig={editorConfig}
               onChange={v => onContentChange(file.path, v)}
               onSave={() => onSave(file.path)}
             />

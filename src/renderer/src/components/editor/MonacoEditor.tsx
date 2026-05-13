@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react'
 import Editor, { type Monaco } from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
+import { emmetHTML, emmetCSS } from 'emmet-monaco-es'
+import type { EditorConfig } from '../../hooks/useSettings'
+import { DEFAULT_EDITOR_CONFIG } from '../../hooks/useSettings'
 
 interface MonacoEditorProps {
   content: string
@@ -8,16 +11,17 @@ interface MonacoEditorProps {
   filePath: string
   isActive: boolean
   monacoTheme: string
+  editorConfig?: EditorConfig
   onChange(value: string): void
   onSave(): void
 }
 
-export function MonacoEditor({ content, language, onChange, onSave, isActive, monacoTheme }: MonacoEditorProps) {
+export function MonacoEditor({ content, language, onChange, onSave, isActive, monacoTheme, editorConfig }: MonacoEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+  const cfg = editorConfig ?? DEFAULT_EDITOR_CONFIG
 
   useEffect(() => {
     if (isActive && editorRef.current) {
-      // Trigger layout recalculation after becoming visible
       editorRef.current.layout()
     }
   }, [isActive])
@@ -25,6 +29,8 @@ export function MonacoEditor({ content, language, onChange, onSave, isActive, mo
   function handleMount(ed: editor.IStandaloneCodeEditor, monaco: Monaco) {
     editorRef.current = ed
     ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => onSave())
+    emmetHTML(monaco, ['html', 'handlebars', 'razor', 'erb'])
+    emmetCSS(monaco, ['css', 'scss', 'less', 'sass'])
   }
 
   return (
@@ -35,19 +41,28 @@ export function MonacoEditor({ content, language, onChange, onSave, isActive, mo
       theme={monacoTheme}
       loading={<div style={{ height: '100%', background: 'var(--bg-primary)' }} />}
       options={{
-        fontSize: 14,
-        fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+        fontSize: cfg.fontSize,
+        tabSize: cfg.tabSize,
+        wordWrap: cfg.wordWrap,
+        minimap: { enabled: cfg.minimap, scale: 1 },
+        lineNumbers: cfg.lineNumbers,
+        fontFamily: "'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace",
         fontLigatures: true,
-        minimap: { enabled: true },
+        lineHeight: 20,
         scrollBeyondLastLine: false,
-        wordWrap: 'off',
-        lineNumbers: 'on',
         renderWhitespace: 'selection',
+        renderLineHighlight: 'gutter',
         bracketPairColorization: { enabled: true },
+        guides: { bracketPairs: true },
         smoothScrolling: true,
         cursorBlinking: 'smooth',
+        cursorSmoothCaretAnimation: 'on',
+        overviewRulerBorder: false,
+        hideCursorInOverviewRuler: true,
         automaticLayout: true,
-        padding: { top: 8 }
+        padding: { top: 8, bottom: 8 },
+        inlineSuggest: { enabled: true },
+        suggest: { preview: true }
       }}
       onChange={v => onChange(v ?? '')}
       onMount={handleMount}

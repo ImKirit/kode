@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { X, Download, Upload } from 'lucide-react'
 import { AppearanceSettings } from './AppearanceSettings'
+import { EditorSettings } from './EditorSettings'
 import { McpSettings } from './McpSettings'
 import { KeybindingsSettings } from './KeybindingsSettings'
+import { GitHubSettings } from './GitHubSettings'
+import { DeploySettings } from './DeploySettings'
 import type { ThemeName } from '../../styles/themes'
 import type { McpServerConfig } from '../../types/electron'
 import type { KeybindingAction } from '../../styles/keybindings'
+import type { EditorConfig } from '../../hooks/useSettings'
 
 interface SettingsPanelProps {
   open: boolean
@@ -22,14 +26,17 @@ interface SettingsPanelProps {
   onSetMcpPermission(value: 'ask' | 'full'): void
   keybindings?: Record<string, string>
   onSetKeybinding?(action: KeybindingAction, key: string): void
+  editorConfig: EditorConfig
+  onSetEditorConfig(config: EditorConfig): void
+  currentFolder?: string | null
 }
 
 export function SettingsPanel({
   open, onClose, theme, customPrimary, customAccent, onSetTheme, onSetCustomColors,
   mcpServers, mcpPermission, onAddMcpServer, onRemoveMcpServer, onSetMcpPermission,
-  keybindings, onSetKeybinding
+  keybindings, onSetKeybinding, editorConfig, onSetEditorConfig, currentFolder
 }: SettingsPanelProps) {
-  const [activeTab, setActiveTab] = useState<'appearance' | 'mcp' | 'keybindings'>('appearance')
+  const [activeTab, setActiveTab] = useState<'appearance' | 'editor' | 'mcp' | 'keybindings' | 'github' | 'deploy'>('appearance')
 
   if (!open) return null
 
@@ -57,8 +64,8 @@ export function SettingsPanel({
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: 520,
-          maxHeight: '80vh',
+          width: 600,
+          maxHeight: '82vh',
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border)',
           borderRadius: 'var(--radius-xl)',
@@ -149,7 +156,7 @@ export function SettingsPanel({
             flexShrink: 0,
             background: 'var(--bg-sidebar)'
           }}>
-            {(['appearance', 'mcp', 'keybindings'] as const).map(tab => (
+            {(['appearance', 'editor', 'mcp', 'keybindings', 'github', 'deploy'] as const).map(tab => (
               <button
                 key={tab}
                 data-flat
@@ -160,15 +167,20 @@ export function SettingsPanel({
                   textAlign: 'left',
                   padding: '8px 12px',
                   borderRadius: 'var(--radius-sm)',
-                  background: activeTab === tab ? 'var(--accent)' : 'transparent',
-                  color: activeTab === tab ? '#ffffff' : 'var(--text-secondary)',
+                  background: activeTab === tab ? 'var(--kode-btn)' : 'transparent',
+                  color: activeTab === tab ? 'var(--kode-btn-fg)' : 'var(--text-secondary)',
                   fontSize: 13,
                   fontWeight: 500,
                   border: 'none',
                   cursor: 'pointer'
                 }}
               >
-                {tab === 'appearance' ? 'Appearance' : tab === 'mcp' ? 'MCP' : 'Keybindings'}
+                {tab === 'appearance' ? 'Appearance'
+                  : tab === 'editor' ? 'Editor'
+                  : tab === 'mcp' ? 'MCP'
+                  : tab === 'keybindings' ? 'Keybindings'
+                  : tab === 'github' ? 'GitHub'
+                  : 'Deploy'}
               </button>
             ))}
           </div>
@@ -184,6 +196,9 @@ export function SettingsPanel({
                 onSetCustomColors={onSetCustomColors}
               />
             )}
+            {activeTab === 'editor' && (
+              <EditorSettings config={editorConfig} onChange={onSetEditorConfig} />
+            )}
             {activeTab === 'mcp' && (
               <McpSettings
                 servers={mcpServers}
@@ -198,6 +213,12 @@ export function SettingsPanel({
                 keybindings={(keybindings ?? {}) as Partial<Record<KeybindingAction, string>>}
                 onSetKeybinding={onSetKeybinding ?? (() => {})}
               />
+            )}
+            {activeTab === 'github' && (
+              <GitHubSettings currentFolder={currentFolder} />
+            )}
+            {activeTab === 'deploy' && (
+              <DeploySettings />
             )}
           </div>
         </div>

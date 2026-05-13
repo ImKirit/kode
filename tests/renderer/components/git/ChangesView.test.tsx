@@ -2,97 +2,104 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ChangesView } from '@renderer/components/git/ChangesView'
 
-const mockRefresh = vi.fn()
-const mockSelectFile = vi.fn()
+const mockStatus = vi.fn()
+const mockDiff = vi.fn()
 const mockStage = vi.fn()
+const mockUnstage = vi.fn()
+const mockStageAll = vi.fn()
 const mockCommit = vi.fn()
-const mockSetCommitMessage = vi.fn()
+const mockPush = vi.fn()
+const mockPull = vi.fn()
+const mockLog = vi.fn()
 
-const defaultGitState = {
-  files: [], diff: '', selectedFile: null, isLoading: false,
-  commitMessage: '', error: null,
-  refresh: mockRefresh, selectFile: mockSelectFile,
-  stage: mockStage, commit: mockCommit, setCommitMessage: mockSetCommitMessage
+const defaultStatusResult = {
+  files: [] as Array<{ path: string; index: string; workingDir: string; staged: boolean; modified: boolean }>,
+  ahead: 0, behind: 0, current: 'main', tracking: 'origin/main'
 }
 
-vi.mock('@renderer/hooks/useGit', () => ({
-  useGit: vi.fn(() => defaultGitState)
-}))
-
-import { useGit } from '@renderer/hooks/useGit'
-const mockUseGit = vi.mocked(useGit)
-
 beforeEach(() => {
-  mockRefresh.mockClear()
-  mockSelectFile.mockClear()
-  mockStage.mockClear()
-  mockCommit.mockClear()
-  mockSetCommitMessage.mockClear()
-  mockUseGit.mockReturnValue(defaultGitState)
+  vi.clearAllMocks()
+  mockStatus.mockResolvedValue(defaultStatusResult)
+  mockDiff.mockResolvedValue('')
+  mockStage.mockResolvedValue(undefined)
+  mockUnstage.mockResolvedValue(undefined)
+  mockStageAll.mockResolvedValue(undefined)
+  mockCommit.mockResolvedValue(undefined)
+  mockPush.mockResolvedValue(undefined)
+  mockPull.mockResolvedValue(undefined)
+  mockLog.mockResolvedValue([])
+  ;(window as unknown as { kode: unknown }).kode = {
+    git: {
+      statusFull: mockStatus,
+      diff: mockDiff,
+      stage: mockStage,
+      unstage: mockUnstage,
+      stageAll: mockStageAll,
+      commit: mockCommit,
+      push: mockPush,
+      pull: mockPull,
+      log: mockLog
+    }
+  }
 })
 
 describe('ChangesView', () => {
-  it('renders "No changes" when file list is empty', () => {
+  it('renders "No changes" when file list is empty', async () => {
     render(<ChangesView rootPath="/project" />)
-    expect(screen.getByText('No changes')).toBeInTheDocument()
+    expect(await screen.findByText('No changes')).toBeInTheDocument()
   })
 
-  it('renders file entries when files are present', () => {
-    mockUseGit.mockReturnValue({
-      ...defaultGitState,
-      files: [{ path: 'src/foo.ts', status: 'M' }, { path: 'src/bar.ts', status: 'A' }]
+  it('renders current branch name', async () => {
+    render(<ChangesView rootPath="/project" />)
+    expect(await screen.findByText('main')).toBeInTheDocument()
+  })
+
+  it('renders unstaged file entries when files are present', async () => {
+    mockStatus.mockResolvedValue({
+      ...defaultStatusResult,
+      files: [
+        { path: 'src/foo.ts', index: ' ', workingDir: 'M', staged: false, modified: true },
+        { path: 'src/bar.ts', index: 'A', workingDir: ' ', staged: true, modified: false }
+      ]
     })
     render(<ChangesView rootPath="/project" />)
-    expect(screen.getByText('foo.ts')).toBeInTheDocument()
-    expect(screen.getByText('bar.ts')).toBeInTheDocument()
+    expect(await screen.findByText('foo.ts')).toBeInTheDocument()
+    expect(await screen.findByText('bar.ts')).toBeInTheDocument()
   })
 
-  it('calls selectFile when a file entry is clicked', () => {
-    mockUseGit.mockReturnValue({
-      ...defaultGitState,
-      files: [{ path: 'src/foo.ts', status: 'M' }]
+  it('calls git.stage when stage button is clicked', async () => {
+    mockStatus.mockResolvedValue({
+      ...defaultStatusResult,
+      files: [{ path: 'src/foo.ts', index: ' ', workingDir: 'M', staged: false, modified: true }]
     })
     render(<ChangesView rootPath="/project" />)
-    fireEvent.click(screen.getByText('foo.ts'))
-    expect(mockSelectFile).toHaveBeenCalledWith('src/foo.ts')
+    // Use the "+" button (actionLabel) for individual file staging
+    const stageBtn = await screen.findByRole('button', { name: /^Stage$/i })
+    fireEvent.click(stageBtn)
+    expect(mockStage).toHaveBeenCalledWith('/project', 'src/foo.ts')
   })
 
-  it('renders diff view when diff is non-empty', () => {
-    mockUseGit.mockReturnValue({ ...defaultGitState, diff: '-old\n+new' })
-    render(<ChangesView rootPath="/project" />)
-    expect(screen.getByTestId('diff-view')).toBeInTheDocument()
-  })
-
-  it('calls refresh when Refresh button clicked', () => {
-    render(<ChangesView rootPath="/project" />)
-    fireEvent.click(screen.getByRole('button', { name: /refresh/i }))
-    expect(mockRefresh).toHaveBeenCalledTimes(1)
-  })
-
-  it('calls setCommitMessage on input change', () => {
-    render(<ChangesView rootPath="/project" />)
-    fireEvent.change(screen.getByPlaceholderText('Commit message...'), { target: { value: 'fix: bug' } })
-    expect(mockSetCommitMessage).toHaveBeenCalledWith('fix: bug')
-  })
-
-  it('calls commit when Commit button clicked', () => {
-    mockUseGit.mockReturnValue({
-      ...defaultGitState,
-      commitMessage: 'feat: thing',
-      files: [{ path: 'src/foo.ts', status: 'M' }]
+  it('calls git.commit when Commit button clicked with message and staged files', async () => {
+    mockStatus.mockResolvedValue({
+      ...defaultStatusResult,
+      files: [{ path: 'src/foo.ts', index: 'M', workingDir: ' ', staged: true, modified: false }]
     })
     render(<ChangesView rootPath="/project" />)
-    fireEvent.click(screen.getByRole('button', { name: /commit/i }))
-    expect(mockCommit).toHaveBeenCalledTimes(1)
+    await screen.findByText('foo.ts')
+    const input = screen.getByPlaceholderText(/commit message/i)
+    fireEvent.change(input, { target: { value: 'feat: thing' } })
+    fireEvent.click(screen.getByRole('button', { name: /commit staged/i }))
+    expect(mockCommit).toHaveBeenCalledWith('/project', 'feat: thing')
   })
 
-  it('calls stage when Stage button is clicked for a file', () => {
-    mockUseGit.mockReturnValue({
-      ...defaultGitState,
-      files: [{ path: 'src/foo.ts', status: 'M' }]
-    })
+  it('shows message when no rootPath is provided', () => {
+    render(<ChangesView rootPath={null} />)
+    expect(screen.getByText(/open a folder/i)).toBeInTheDocument()
+  })
+
+  it('renders Push and Pull buttons', async () => {
     render(<ChangesView rootPath="/project" />)
-    fireEvent.click(screen.getByRole('button', { name: /stage src\/foo\.ts/i }))
-    expect(mockStage).toHaveBeenCalledWith('src/foo.ts')
+    expect(await screen.findByRole('button', { name: /push/i })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /pull/i })).toBeInTheDocument()
   })
 })

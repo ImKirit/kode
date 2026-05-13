@@ -91,6 +91,9 @@ export function registerAiHandlers(): void {
           stream.finalMessage()
             .then(msg => {
               currentStream = null
+              if (msg.usage) {
+                send('ai:usage', { inputTokens: msg.usage.input_tokens, outputTokens: msg.usage.output_tokens })
+              }
               resolve({ stopReason: msg.stop_reason ?? 'end_turn', assistantContent: msg.content })
             })
             .catch((err: unknown) => {

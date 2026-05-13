@@ -29,6 +29,7 @@ export interface UseSchedulerResult {
   retryCountdown: number | null
   queue: string[]
   pendingApproval: ToolApprovalRequest | null
+  sessionTokens: number
   sendOrEnqueue(text: string, systemPrompt?: string): void
   stop(): void
   clearMessages(): void
@@ -45,6 +46,7 @@ export function useScheduler(): UseSchedulerResult {
   const [queue, setQueue] = useState<string[]>([])
   const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
   const [pendingApproval, setPendingApproval] = useState<ToolApprovalRequest | null>(null)
+  const [sessionTokens, setSessionTokens] = useState(0)
 
   const messagesRef = useRef<ChatMessage[]>([])
   const isStreamingRef = useRef(false)
@@ -139,6 +141,10 @@ export function useScheduler(): UseSchedulerResult {
       setPendingApproval(e)
     })
 
+    const unUsage = window.kode.ai.onUsage(({ inputTokens, outputTokens }) => {
+      setSessionTokens(t => t + inputTokens + outputTokens)
+    })
+
     return () => {
       unToken()
       unDone()
@@ -147,6 +153,7 @@ export function useScheduler(): UseSchedulerResult {
       unToolCall()
       unToolResult()
       unToolApproval()
+      unUsage()
     }
   }, [])
 
@@ -255,7 +262,7 @@ export function useScheduler(): UseSchedulerResult {
   }, [])
 
   return {
-    messages, isStreaming, error, retryCountdown, queue, pendingApproval,
+    messages, isStreaming, error, retryCountdown, queue, pendingApproval, sessionTokens,
     sendOrEnqueue, stop, clearMessages, removeFromQueue, clearQueue,
     approveTool, denyTool
   }
