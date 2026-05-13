@@ -1,22 +1,23 @@
 # Kode
 
-An open-source, cross-platform, AI-native code editor built with Electron. Think VS Code meets Cursor — full Monaco editing, first-class AI agent support, and a completely customizable dockable panel layout, without any lock-in.
+An open-source, cross-platform, AI-native code editor built with Electron. Think VS Code meets Claude Code — full Monaco editing, first-class AI agent support with MCP, persistent chat history, and a completely customizable panel layout, without any lock-in.
 
 ---
 
 ## Features
 
 - **Monaco Editor** — same editor engine as VS Code, with syntax highlighting, IntelliSense, and multi-tab support
-- **AI Agent Panels** — stream responses token-by-token from Claude, OpenAI, GitHub Copilot, and Gemini
-- **OAuth Login** — sign in with your existing provider account (no raw API keys required)
-- **Dockable Panels** — drag, split, float, and rearrange every panel freely (GoldenLayout)
-- **Integrated Terminal** — real PTY terminal via node-pty and xterm.js, multi-instance
-- **Prompt Scheduler** — schedule prompts to run at a specific time or auto-resume after rate limits
+- **AI Agent Panel** — stream responses token-by-token from Claude (Anthropic), OpenAI, GitHub Copilot, and Gemini
+- **MCP Support** — auto-loads MCP servers from `.claude/` folders; connect any MCP server manually in Settings
+- **Chat History** — all conversations persisted in SQLite; searchable threads sidebar, rename/archive/delete
+- **Prompt Scheduler** — schedule prompts to run at a specific time, or auto-resume after rate limits
 - **Auto Follow** — watch the AI write to files in real time as it edits them
-- **Git Integration** — status, diff, stage, commit, push, pull from within the editor
-- **MCP Support** — loads MCP servers from `.claude/` folders automatically
-- **Plugin Marketplace** — extend Kode with npm-based plugins
-- **Full Theming** — CSS custom property themes, importable/exportable as JSON
+- **Git Integration** — status, diff, stage, commit from within the editor (Changes tab in bottom panel)
+- **Integrated Terminal** — real PTY terminal via node-pty + xterm.js, multiple instances
+- **Plugin Marketplace** — extend Kode with npm-based plugins (`kode-plugin` keyword)
+- **Full Theming** — light/dark/custom themes via CSS custom properties, importable/exportable as JSON
+- **Keybindings** — customizable keyboard shortcuts with visual editor and reset
+- **CLAUDE.md badge** — shows when a project has a `.claude/CLAUDE.md` context file loaded
 - **Local-only** — no cloud sync, no telemetry, all data stored in SQLite on your machine
 
 ---
@@ -29,12 +30,12 @@ An open-source, cross-platform, AI-native code editor built with Electron. Think
 | UI | React 18 + TypeScript 5 |
 | Editor | Monaco Editor |
 | Terminal | node-pty + xterm.js |
-| Panel docking | GoldenLayout v2 |
+| AI | @anthropic-ai/sdk, openai, @modelcontextprotocol/sdk |
 | Database | SQLite via better-sqlite3 |
 | Styling | CSS custom properties + Tailwind CSS |
 | Icons | Lucide React |
 | Build | Vite (renderer) + esbuild (main) |
-| Tests | Vitest + React Testing Library |
+| Tests | Vitest + React Testing Library (383 tests) |
 
 ---
 
@@ -52,12 +53,14 @@ npm install
 npm run dev
 ```
 
-### Build
+### Build for Production
 
 ```bash
 npm run build
 npm run make
 ```
+
+This produces installers in `out/make/` for your platform.
 
 ### Test
 
@@ -71,39 +74,55 @@ npm test
 
 ```
 src/
-  main/          # Electron main process (IPC, file system, terminal, auth)
-  preload/       # Context bridge (exposes safe APIs to renderer)
-  renderer/      # React app (UI, editor, panels, hooks)
+  main/
+    db/          # SQLite (ChatDB — sessions, messages, file changes)
+    ipc/         # IPC handlers: fs, terminal, ai, settings, git, mcp, chat, plugins
+    mcp/         # McpManager + built-in filesystem/shell servers
+    plugins/     # PluginLoader (npm registry, install/uninstall)
+  preload/       # contextBridge (exposes safe APIs from main to renderer)
+  renderer/
     src/
       components/
-        editor/    # MonacoEditor, EditorArea, EditorTab
-        filetree/  # FileTree, FileTreeNode
-        layout/    # AppLayout, MenuBar
-        ai/        # AIChatPanel (and future AI panels)
-      hooks/       # useProject, useFileTree
-      styles/      # globals.css (CSS custom properties theme)
-      types/       # TypeScript types + electron.d.ts
+        ai/      # AIChatPanel, ThreadsPanel, ChatMessage, ToolCallBlock, PermissionDialog
+        editor/  # EditorArea, EditorTab, MonacoEditor wrapper
+        filetree/ # FileTree, FileTreeNode
+        layout/  # AppLayout, ActivityBar, MenuBar, BottomPanel
+        plugins/ # PluginBrowser
+        settings/ # SettingsPanel, AppearanceSettings, McpSettings, KeybindingsSettings
+        terminal/ # Terminal
+      hooks/     # useProject, useScheduler, useChatHistory, useSettings, useAutoFollow, ...
+      styles/    # themes.ts, keybindings.ts, globals.css
+      types/     # index.ts, electron.d.ts
+
 tests/
-  main/          # Main process unit tests
-  renderer/      # Renderer component and hook tests
-docs/
-  superpowers/
-    specs/       # Architecture specs
-    plans/       # Implementation plans per milestone
+  main/          # Main-process unit tests (real Node.js)
+  renderer/      # Renderer component and hook tests (jsdom + RTL)
 ```
 
 ---
 
-## Logo / Icon
+## Packaging
 
-Place your app icon files in `resources/` before packaging:
+Place icon files in `resources/` before packaging:
 
-- `resources/icon.png` — 512x512, used on Linux and as fallback
-- `resources/icon.ico` — Windows taskbar and installer
-- `resources/icon.icns` — macOS Dock
+- `resources/icon.png` — 512x512, Linux + fallback
+- `resources/icon.ico` — Windows
+- `resources/icon.icns` — macOS
+
+Then run:
+
+```bash
+npm run make
+```
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
 ## License
 
-MIT
+[MIT](LICENSE)
