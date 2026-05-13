@@ -71,6 +71,7 @@ export interface AppSettings {
   }
   mcpServers: McpServerConfig[]
   mcpPermission: 'ask' | 'full'
+  keybindings?: Record<string, string>
 }
 
 declare global {
@@ -97,6 +98,8 @@ declare global {
       settings: {
         get(): Promise<AppSettings>
         set(settings: AppSettings): Promise<void>
+        export(): Promise<{ ok: boolean; reason?: string }>
+        import(): Promise<{ ok: boolean; settings?: Partial<AppSettings>; reason?: string }>
       }
       ai: {
         sendMessage(

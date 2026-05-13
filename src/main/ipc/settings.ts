@@ -16,6 +16,7 @@ export interface AppSettings {
   }
   mcpServers: McpServerConfig[]
   mcpPermission: 'ask' | 'full'
+  keybindings?: Record<string, string>
 }
 
 const DEFAULT_SETTINGS: AppSettings = {

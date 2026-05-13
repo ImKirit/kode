@@ -52,7 +52,11 @@ contextBridge.exposeInMainWorld('kode', {
     get: (): Promise<AppSettings> =>
       ipcRenderer.invoke('settings:get'),
     set: (settings: AppSettings): Promise<void> =>
-      ipcRenderer.invoke('settings:set', settings)
+      ipcRenderer.invoke('settings:set', settings),
+    export: (): Promise<{ ok: boolean; reason?: string }> =>
+      ipcRenderer.invoke('settings:export'),
+    import: (): Promise<{ ok: boolean; settings?: Partial<AppSettings>; reason?: string }> =>
+      ipcRenderer.invoke('settings:import')
   },
   ai: {
     sendMessage: (

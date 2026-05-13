@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { X, Download, Upload } from 'lucide-react'
 import { AppearanceSettings } from './AppearanceSettings'
 import { McpSettings } from './McpSettings'
+import { KeybindingsSettings } from './KeybindingsSettings'
 import type { ThemeName } from '../../styles/themes'
 import type { McpServerConfig } from '../../types/electron'
+import type { KeybindingAction } from '../../styles/keybindings'
 
 interface SettingsPanelProps {
   open: boolean
@@ -18,13 +20,16 @@ interface SettingsPanelProps {
   onAddMcpServer(config: Omit<McpServerConfig, 'id'>): void
   onRemoveMcpServer(id: string): void
   onSetMcpPermission(value: 'ask' | 'full'): void
+  keybindings?: Record<string, string>
+  onSetKeybinding?(action: KeybindingAction, key: string): void
 }
 
 export function SettingsPanel({
   open, onClose, theme, customPrimary, customAccent, onSetTheme, onSetCustomColors,
-  mcpServers, mcpPermission, onAddMcpServer, onRemoveMcpServer, onSetMcpPermission
+  mcpServers, mcpPermission, onAddMcpServer, onRemoveMcpServer, onSetMcpPermission,
+  keybindings, onSetKeybinding
 }: SettingsPanelProps) {
-  const [activeTab, setActiveTab] = useState<'appearance' | 'mcp'>('appearance')
+  const [activeTab, setActiveTab] = useState<'appearance' | 'mcp' | 'keybindings'>('appearance')
 
   if (!open) return null
 
@@ -76,10 +81,46 @@ export function SettingsPanel({
           <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
             Settings
           </span>
-          <button
-            data-flat
-            aria-label="Close settings"
-            onClick={onClose}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button
+              data-flat
+              aria-label="Export settings"
+              title="Export settings to JSON"
+              onClick={async () => {
+                await window.kode.settings.export()
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 28, height: 28, borderRadius: 'var(--radius-sm)',
+                background: 'transparent', color: 'var(--text-muted)'
+              }}
+            >
+              <Download size={14} />
+            </button>
+            <button
+              data-flat
+              aria-label="Import settings"
+              title="Import settings from JSON"
+              onClick={async () => {
+                const result = await window.kode.settings.import()
+                if (result.ok && result.settings) {
+                  const current = await window.kode.settings.get()
+                  await window.kode.settings.set({ ...current, ...result.settings })
+                  window.location.reload()
+                }
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 28, height: 28, borderRadius: 'var(--radius-sm)',
+                background: 'transparent', color: 'var(--text-muted)'
+              }}
+            >
+              <Upload size={14} />
+            </button>
+            <button
+              data-flat
+              aria-label="Close settings"
+              onClick={onClose}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -94,7 +135,8 @@ export function SettingsPanel({
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <X size={15} />
-          </button>
+            </button>
+          </div>
         </div>
 
         {/* Body — sidebar + content */}
@@ -107,7 +149,7 @@ export function SettingsPanel({
             flexShrink: 0,
             background: 'var(--bg-sidebar)'
           }}>
-            {(['appearance', 'mcp'] as const).map(tab => (
+            {(['appearance', 'mcp', 'keybindings'] as const).map(tab => (
               <button
                 key={tab}
                 data-flat
@@ -126,7 +168,7 @@ export function SettingsPanel({
                   cursor: 'pointer'
                 }}
               >
-                {tab === 'appearance' ? 'Appearance' : 'MCP'}
+                {tab === 'appearance' ? 'Appearance' : tab === 'mcp' ? 'MCP' : 'Keybindings'}
               </button>
             ))}
           </div>
@@ -149,6 +191,12 @@ export function SettingsPanel({
                 onAddServer={onAddMcpServer}
                 onRemoveServer={onRemoveMcpServer}
                 onSetPermission={onSetMcpPermission}
+              />
+            )}
+            {activeTab === 'keybindings' && (
+              <KeybindingsSettings
+                keybindings={(keybindings ?? {}) as Partial<Record<KeybindingAction, string>>}
+                onSetKeybinding={onSetKeybinding ?? (() => {})}
               />
             )}
           </div>

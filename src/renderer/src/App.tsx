@@ -21,7 +21,7 @@ export function App() {
   const [pluginBrowserOpen, setPluginBrowserOpen] = useState(false)
 
   const themeState = useTheme()
-  const { settings, addMcpServer, removeMcpServer, setMcpPermission } = useSettings()
+  const { settings, addMcpServer, removeMcpServer, setMcpPermission, setKeybinding } = useSettings()
 
   const {
     project,
@@ -50,7 +50,11 @@ export function App() {
   useKeyboardShortcuts({
     onToggleSidebar: layout.toggleSidebar,
     onToggleBottomPanel: layout.toggleBottomPanel,
-    onToggleAiPanel: layout.toggleAiPanel
+    onToggleAiPanel: layout.toggleAiPanel,
+    onSaveFile: () => activeFilePath && saveFile(activeFilePath),
+    onOpenFolder: openFolder,
+    onOpenSettings: () => setSettingsOpen(true),
+    keybindings: settings?.keybindings
   })
 
   return (
@@ -119,6 +123,8 @@ export function App() {
         onAddMcpServer={addMcpServer}
         onRemoveMcpServer={removeMcpServer}
         onSetMcpPermission={setMcpPermission}
+        keybindings={settings?.keybindings}
+        onSetKeybinding={setKeybinding}
       />
 
       {pluginBrowserOpen && (

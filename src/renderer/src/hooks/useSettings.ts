@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { McpServerConfig } from '../types/electron'
+import type { KeybindingAction } from '../styles/keybindings'
 
 export interface ProviderConfig {
   apiKey: string
@@ -14,6 +15,7 @@ export interface AppSettings {
   }
   mcpServers: McpServerConfig[]
   mcpPermission: 'ask' | 'full'
+  keybindings?: Record<string, string>
 }
 
 export interface UseSettingsResult {
@@ -26,6 +28,7 @@ export interface UseSettingsResult {
   addMcpServer(config: Omit<McpServerConfig, 'id'>): void
   removeMcpServer(id: string): void
   setMcpPermission(value: 'ask' | 'full'): void
+  setKeybinding(action: KeybindingAction, key: string): void
 }
 
 export function useSettings(): UseSettingsResult {
@@ -112,5 +115,20 @@ export function useSettings(): UseSettingsResult {
     })
   }, [])
 
-  return { settings, loading, updateSettings, setActiveProvider, setProviderKey, setProviderModel, addMcpServer, removeMcpServer, setMcpPermission }
+  const setKeybinding = useCallback((action: KeybindingAction, key: string) => {
+    setSettingsState(prev => {
+      if (!prev) return prev
+      const existing = prev.keybindings ?? {}
+      const next: AppSettings = {
+        ...prev,
+        keybindings: key ? { ...existing, [action]: key } : Object.fromEntries(
+          Object.entries(existing).filter(([k]) => k !== action)
+        )
+      }
+      window.kode.settings.set(next).catch(() => {})
+      return next
+    })
+  }, [])
+
+  return { settings, loading, updateSettings, setActiveProvider, setProviderKey, setProviderModel, addMcpServer, removeMcpServer, setMcpPermission, setKeybinding }
 }
