@@ -33,6 +33,7 @@ export function MonacoEditor({ content, language, onChange, onSave, isActive, mo
       language={language}
       value={content}
       theme={monacoTheme}
+      loading={<div style={{ height: '100%', background: 'var(--bg-primary)' }} />}
       options={{
         fontSize: 14,
         fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
