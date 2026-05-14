@@ -208,6 +208,7 @@ declare global {
         start(rootPath: string, port?: number): Promise<{ ok: boolean; port?: number; error?: string }>
         stop(): Promise<void>
         status(): Promise<{ running: boolean; port?: number; rootPath?: string }>
+        openInBrowser(): Promise<void>
         onReload(cb: () => void): () => void
       }
       scheduler: {

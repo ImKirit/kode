@@ -400,7 +400,7 @@ export function AIChatPanel({
           border: '1px solid var(--border)',
           borderRadius: 'var(--radius-lg)',
           background: 'var(--bg-input)',
-          overflow: 'hidden',
+          overflow: 'visible',
           display: 'flex',
           flexDirection: 'column'
         }}>

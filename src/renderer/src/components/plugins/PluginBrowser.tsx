@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Server, RefreshCw, ExternalLink } from 'lucide-react'
 
 interface PluginMeta {
   id: string
@@ -17,10 +16,45 @@ interface PluginSearchResult {
   downloads?: number
 }
 
-interface LiveServerStatus {
-  running: boolean
-  port?: number
+interface BuiltinPlugin {
+  id: string
+  name: string
+  category: string
+  description: string
 }
+
+const BUILTIN_PLUGINS: BuiltinPlugin[] = [
+  {
+    id: 'kode-monaco',
+    name: 'Monaco Editor',
+    category: 'Editor',
+    description: 'VS Code-grade editor with syntax highlighting, IntelliSense, and multi-cursor editing.'
+  },
+  {
+    id: 'kode-emmet',
+    name: 'Emmet',
+    category: 'Productivity',
+    description: 'Lightning-fast HTML and CSS abbreviation expansion in the editor.'
+  },
+  {
+    id: 'kode-terminal',
+    name: 'Terminal',
+    category: 'Productivity',
+    description: 'Integrated shell powered by node-pty, spawned from your project root.'
+  },
+  {
+    id: 'kode-git',
+    name: 'Git Integration',
+    category: 'Git',
+    description: 'Branch picker, push, pull, fetch, and commit log in the bottom panel.'
+  },
+  {
+    id: 'kode-ai',
+    name: 'AI Chat',
+    category: 'AI',
+    description: 'Claude-powered assistant with tool calls, scheduling, and .kode.md context.'
+  }
+]
 
 const categoryColor: Record<string, string> = {
   Server:      '#4ade80',
@@ -28,17 +62,17 @@ const categoryColor: Record<string, string> = {
   Linter:      '#f59e0b',
   Git:         '#f87171',
   Productivity:'#22d3ee',
-  Snippets:    '#a78bfa'
+  Snippets:    '#a78bfa',
+  Editor:      '#6366f1',
+  AI:          '#a78bfa'
 }
 
-export function PluginBrowser({ rootPath }: { rootPath?: string | null }) {
+export function PluginBrowser({ rootPath: _rootPath }: { rootPath?: string | null }) {
   const [installed, setInstalled] = useState<PluginMeta[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<PluginSearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [loadingId, setLoadingId] = useState<string | null>(null)
-  const [liveServer, setLiveServer] = useState<LiveServerStatus>({ running: false })
-  const [liveServerLoading, setLiveServerLoading] = useState(false)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const refreshInstalled = useCallback(async () => {
@@ -46,15 +80,9 @@ export function PluginBrowser({ rootPath }: { rootPath?: string | null }) {
     setInstalled(list)
   }, [])
 
-  const refreshLiveServer = useCallback(async () => {
-    const s = await window.kode.liveServer.status()
-    setLiveServer(s)
-  }, [])
-
   useEffect(() => {
     refreshInstalled()
-    refreshLiveServer()
-  }, [refreshInstalled, refreshLiveServer])
+  }, [refreshInstalled])
 
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current)
@@ -93,25 +121,6 @@ export function PluginBrowser({ rootPath }: { rootPath?: string | null }) {
       setLoadingId(null)
     }
   }, [refreshInstalled])
-
-  const handleToggleLiveServer = useCallback(async () => {
-    setLiveServerLoading(true)
-    try {
-      if (liveServer.running) {
-        await window.kode.liveServer.stop()
-        setLiveServer({ running: false })
-      } else {
-        const res = await window.kode.liveServer.start(rootPath ?? '', 5500)
-        if (res.ok) {
-          setLiveServer({ running: true, port: res.port })
-        } else {
-          alert(res.error ?? 'Failed to start Live Server')
-        }
-      }
-    } finally {
-      setLiveServerLoading(false)
-    }
-  }, [liveServer.running, rootPath])
 
   const installedIds = new Set(installed.map(p => p.id))
   const isSearching = !!searchQuery.trim()
@@ -193,57 +202,29 @@ export function PluginBrowser({ rootPath }: { rootPath?: string | null }) {
       {!isSearching && (
         <>
           <div style={sectionLabel}>Built-in</div>
-
-          {/* Live Server */}
-          <div style={row}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 6, flexShrink: 0,
-              background: liveServer.running ? 'rgba(74,222,128,0.12)' : 'rgba(148,163,184,0.08)',
-              border: `1px solid ${liveServer.running ? 'rgba(74,222,128,0.3)' : 'var(--border)'}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              <Server size={15} color={liveServer.running ? '#4ade80' : 'var(--text-muted)'} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Live Server</span>
-                <span style={{
-                  fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', padding: '1px 5px', borderRadius: 4,
-                  background: categoryColor.Server + '22', color: categoryColor.Server,
-                  border: `1px solid ${categoryColor.Server}55`
-                }}>Server</span>
-                {liveServer.running && liveServer.port && (
-                  <a
-                    href="#"
-                    onClick={e => { e.preventDefault(); window.kode.liveServer.start(rootPath ?? '', liveServer.port) }}
-                    style={{ fontSize: 10, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}
-                  >
-                    <ExternalLink size={9} />
-                    localhost:{liveServer.port}
-                  </a>
-                )}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>
-                Launch a local HTTP server with live reload. Changes to your files automatically refresh the browser.
-              </div>
-            </div>
-            <button
-              onClick={handleToggleLiveServer}
-              disabled={liveServerLoading}
-              style={{
-                ...btnBase,
-                background: liveServer.running ? 'rgba(248,113,113,0.08)' : 'none',
-                color: liveServerLoading ? 'var(--text-muted)' : liveServer.running ? '#f87171' : 'var(--accent)',
-                borderColor: liveServer.running ? 'rgba(248,113,113,0.3)' : 'var(--accent)'
-              }}
-            >
-              {liveServerLoading ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <RefreshCw size={10} style={{ animation: 'spin 1s linear infinite' }} /> Working...
+          {BUILTIN_PLUGINS.map(plugin => {
+            const color = categoryColor[plugin.category] ?? 'var(--text-muted)'
+            return (
+              <div key={plugin.id} style={row}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{plugin.name}</span>
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', padding: '1px 5px', borderRadius: 4,
+                      background: color + '22', color,
+                      border: `1px solid ${color}55`
+                    }}>{plugin.category}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>
+                    {plugin.description}
+                  </div>
+                </div>
+                <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)', flexShrink: 0 }}>
+                  built-in
                 </span>
-              ) : liveServer.running ? 'Stop' : 'Start'}
-            </button>
-          </div>
+              </div>
+            )
+          })}
         </>
       )}
 

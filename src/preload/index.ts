@@ -182,6 +182,8 @@ contextBridge.exposeInMainWorld('kode', {
       ipcRenderer.invoke('liveserver:stop'),
     status: (): Promise<{ running: boolean; port?: number; rootPath?: string }> =>
       ipcRenderer.invoke('liveserver:status'),
+    openInBrowser: (): Promise<void> =>
+      ipcRenderer.invoke('liveserver:openInBrowser'),
     onReload: (cb: () => void): (() => void) => {
       const listener = () => cb()
       ipcRenderer.on('liveserver:reload', listener)

@@ -72,14 +72,18 @@ export function App() {
 
   const handleToggleLocalHost = useCallback(async () => {
     const port = settings?.localHostPort ?? 8000
-    if (!localHostActive) {
-      const result = await window.kode.liveServer.start(project.rootPath ?? '', port)
-      if (result.ok) setLocalHostActive(true)
-    } else {
-      await window.kode.liveServer.stop()
-      setLocalHostActive(false)
-    }
-  }, [localHostActive, project.rootPath, settings?.localHostPort])
+    const result = await window.kode.liveServer.start(project.rootPath ?? '', port)
+    if (result.ok) setLocalHostActive(true)
+  }, [project.rootPath, settings?.localHostPort])
+
+  const handleOpenLocalHost = useCallback(() => {
+    window.kode.liveServer.openInBrowser()
+  }, [])
+
+  const handleStopLocalHost = useCallback(async () => {
+    await window.kode.liveServer.stop()
+    setLocalHostActive(false)
+  }, [])
 
   const activeProvider = settings?.activeProvider ?? 'anthropic'
   const activeModel = settings?.providers[activeProvider]?.model ?? ''
@@ -113,6 +117,8 @@ export function App() {
             onToggleBottomPanel={layout.toggleBottomPanel}
             onTogglePluginBrowser={() => setPluginBrowserOpen(v => !v)}
             onToggleLocalHost={handleToggleLocalHost}
+            onOpenLocalHost={handleOpenLocalHost}
+            onStopLocalHost={handleStopLocalHost}
             onOpenSettings={() => openSettings()}
             onOpenDeploy={() => openSettings('deploy')}
           />

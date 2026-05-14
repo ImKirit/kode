@@ -171,4 +171,8 @@ export function registerLiveServerHandlers(): void {
     if (!state) return { running: false }
     return { running: true, port: state.port, rootPath: state.rootPath }
   })
+
+  ipcMain.handle('liveserver:openInBrowser', async (): Promise<void> => {
+    if (state) await shell.openExternal(`http://localhost:${state.port}`)
+  })
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Files, Terminal, MessageSquare, Settings, Upload, Globe, LayoutGrid } from 'lucide-react'
 
 interface ActivityBarProps {
@@ -13,6 +14,8 @@ interface ActivityBarProps {
   onOpenSettings?(): void
   onOpenDeploy?(): void
   onToggleLocalHost?(): void
+  onOpenLocalHost?(): void
+  onStopLocalHost?(): void
 }
 
 interface BtnProps {
@@ -73,8 +76,12 @@ export function ActivityBar({
   onTogglePluginBrowser,
   onOpenSettings,
   onOpenDeploy,
-  onToggleLocalHost
+  onToggleLocalHost,
+  onOpenLocalHost,
+  onStopLocalHost
 }: ActivityBarProps) {
+  const [showLocalHostMenu, setShowLocalHostMenu] = useState(false)
+
   return (
     <div
       data-testid="activity-bar"
@@ -117,13 +124,87 @@ export function ActivityBar({
           onClick={onTogglePluginBrowser}
         />
       )}
+
+      {/* Local Host — custom button with right-click stop menu */}
       {onToggleLocalHost && (
-        <ActivityBarButton
-          icon={<Globe size={17} />}
-          active={localHostActive}
-          label="Local Host"
-          onClick={onToggleLocalHost}
-        />
+        <div style={{ position: 'relative' }}>
+          <button
+            data-flat
+            onClick={() => {
+              if (localHostActive) {
+                (onOpenLocalHost ?? onToggleLocalHost)()
+              } else {
+                onToggleLocalHost()
+              }
+            }}
+            onContextMenu={e => {
+              if (localHostActive) {
+                e.preventDefault()
+                setShowLocalHostMenu(v => !v)
+              }
+            }}
+            aria-label="Local Host"
+            aria-pressed={localHostActive}
+            title={localHostActive ? 'Open in browser · right-click to stop' : 'Start Local Host'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 36,
+              height: 36,
+              background: localHostActive ? 'var(--kode-btn)' : 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: localHostActive ? 'var(--kode-btn-fg)' : 'var(--text-muted)',
+              borderRadius: 'var(--radius-md)',
+              padding: 0,
+              transition: 'background var(--transition-fast), color var(--transition-fast)'
+            }}
+          >
+            <Globe size={17} />
+          </button>
+
+          {showLocalHostMenu && localHostActive && (
+            <>
+              <div
+                style={{ position: 'fixed', inset: 0, zIndex: 199 }}
+                onClick={() => setShowLocalHostMenu(false)}
+              />
+              <div style={{
+                position: 'absolute',
+                left: 'calc(100% + 4px)',
+                top: 0,
+                zIndex: 200,
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                overflow: 'hidden',
+                minWidth: 160
+              }}>
+                <button
+                  onClick={() => { onStopLocalHost?.(); setShowLocalHostMenu(false) }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    width: '100%',
+                    padding: '8px 14px',
+                    fontSize: 11,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#f87171',
+                    fontFamily: 'inherit',
+                    whiteSpace: 'nowrap',
+                    textAlign: 'left'
+                  }}
+                >
+                  Stop Live Server
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       )}
 
       {/* Bottom pinned actions */}
