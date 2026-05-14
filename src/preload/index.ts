@@ -168,6 +168,38 @@ contextBridge.exposeInMainWorld('kode', {
       ipcRenderer.invoke('github:setLinkedRepo', folderPath, repo),
     unlinkRepo: (folderPath: string): Promise<void> =>
       ipcRenderer.invoke('github:unlinkRepo', folderPath),
+    startDeviceFlow: (): Promise<{ deviceCode: string; userCode: string; verificationUri: string; expiresIn: number; interval: number } | { error: string }> =>
+      ipcRenderer.invoke('github:startDeviceFlow'),
+    pollDeviceToken: (deviceCode: string): Promise<{ ok: boolean; token?: string; error?: string }> =>
+      ipcRenderer.invoke('github:pollDeviceToken', deviceCode),
+    openDevicePage: (uri: string): Promise<void> =>
+      ipcRenderer.invoke('github:openDevicePage', uri),
+  },
+  liveServer: {
+    start: (rootPath: string, port?: number): Promise<{ ok: boolean; port?: number; error?: string }> =>
+      ipcRenderer.invoke('liveserver:start', rootPath, port),
+    stop: (): Promise<void> =>
+      ipcRenderer.invoke('liveserver:stop'),
+    status: (): Promise<{ running: boolean; port?: number; rootPath?: string }> =>
+      ipcRenderer.invoke('liveserver:status'),
+    onReload: (cb: () => void): (() => void) => {
+      const listener = () => cb()
+      ipcRenderer.on('liveserver:reload', listener)
+      return () => ipcRenderer.removeListener('liveserver:reload', listener)
+    }
+  },
+  scheduler: {
+    add: (id: string, prompt: string, triggerAt: number): Promise<void> =>
+      ipcRenderer.invoke('scheduler:add', id, prompt, triggerAt),
+    cancel: (id: string): Promise<void> =>
+      ipcRenderer.invoke('scheduler:cancel', id),
+    list: (): Promise<Array<{ id: string; prompt: string; triggerAt: number }>> =>
+      ipcRenderer.invoke('scheduler:list'),
+    onFire: (cb: (prompt: string) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, prompt: string) => cb(prompt)
+      ipcRenderer.on('scheduler:fire', listener)
+      return () => ipcRenderer.removeListener('scheduler:fire', listener)
+    }
   },
   deploy: {
     getConfig: (): Promise<{ ip: string; user: string; keyPath: string; workDir: string } | null> =>

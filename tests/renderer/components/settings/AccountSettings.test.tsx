@@ -28,6 +28,14 @@ beforeEach(() => {
     usage: {
       getStats: mockGetStats,
       add: vi.fn().mockResolvedValue(undefined)
+    },
+    github: {
+      getUser: vi.fn().mockResolvedValue(null),
+      hasToken: vi.fn().mockResolvedValue(false),
+      clearToken: vi.fn().mockResolvedValue(undefined),
+      startDeviceFlow: vi.fn().mockResolvedValue({ deviceCode: 'dc', userCode: 'USER-CODE', verificationUri: 'https://github.com/login/device', expiresIn: 900, interval: 5 }),
+      pollDeviceToken: vi.fn().mockResolvedValue({ ok: false }),
+      openDevicePage: vi.fn().mockResolvedValue(undefined)
     }
   }
 })

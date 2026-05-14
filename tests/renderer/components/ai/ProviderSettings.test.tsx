@@ -10,7 +10,9 @@ const DEFAULT_SETTINGS = {
   activeProvider: 'anthropic' as const,
   providers: {
     anthropic: { apiKey: 'sk-ant-existing', model: 'claude-sonnet-4-6' },
-    openai: { apiKey: '', model: 'gpt-4o' }
+    openai: { apiKey: '', model: 'gpt-4o' },
+    kode: { apiKey: '', model: 'claude-sonnet-4-6' },
+    copilot: { apiKey: '', model: 'gpt-4o' }
   }
 }
 
@@ -176,8 +178,8 @@ describe('ProviderSettings', () => {
       />
     )
     const select = screen.getByRole('combobox')
-    fireEvent.change(select, { target: { value: 'claude-opus-4-6' } })
-    expect(mockSetProviderModel).toHaveBeenCalledWith('anthropic', 'claude-opus-4-6')
+    fireEvent.change(select, { target: { value: 'claude-opus-4-7' } })
+    expect(mockSetProviderModel).toHaveBeenCalledWith('anthropic', 'claude-opus-4-7')
   })
 
   it('calls onClose when close button is clicked', () => {

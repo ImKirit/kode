@@ -8,33 +8,50 @@ export interface ProviderConfig {
   model: string
 }
 
+export type ProviderId = 'anthropic' | 'openai' | 'kode' | 'copilot'
+
+export interface EditorConfig {
+  fontSize: number
+  tabSize: number
+  wordWrap: 'off' | 'on' | 'wordWrapColumn' | 'bounded'
+  minimap: boolean
+  lineNumbers: 'on' | 'off' | 'relative'
+  formatOnSave: boolean
+}
+
 export interface AppSettings {
-  activeProvider: 'anthropic' | 'openai'
-  providers: {
-    anthropic: ProviderConfig
-    openai: ProviderConfig
-  }
+  activeProvider: ProviderId
+  providers: Record<ProviderId, ProviderConfig>
   mcpServers: McpServerConfig[]
   mcpPermission: 'ask' | 'full'
   keybindings?: Record<string, string>
+  editor?: EditorConfig
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
   activeProvider: 'anthropic',
   providers: {
     anthropic: { apiKey: '', model: 'claude-sonnet-4-6' },
-    openai: { apiKey: '', model: 'gpt-4o' }
+    openai:    { apiKey: '', model: 'gpt-4o' },
+    kode:      { apiKey: '', model: 'claude-sonnet-4-6' },
+    copilot:   { apiKey: '', model: 'gpt-4o' }
   },
   mcpServers: [],
   mcpPermission: 'full',
 }
 
+interface StoredProviders {
+  anthropic?: { encryptedApiKey: string; model: string }
+  openai?:    { encryptedApiKey: string; model: string }
+  kode?:      { model: string }
+  copilot?:   { model: string }
+}
+
 interface StoredSettings {
-  activeProvider: 'anthropic' | 'openai'
-  providers: {
-    anthropic: { encryptedApiKey: string; model: string }
-    openai: { encryptedApiKey: string; model: string }
-  }
+  activeProvider: ProviderId
+  providers: StoredProviders
+  editor?: EditorConfig
+  keybindings?: Record<string, string>
 }
 
 function settingsPath(): string {
@@ -61,17 +78,29 @@ export function loadSettings(): AppSettings {
   try {
     const stored: StoredSettings = JSON.parse(fs.readFileSync(filePath, 'utf8'))
     return {
-      activeProvider: stored.activeProvider ?? 'anthropic',
+      activeProvider: (stored.activeProvider as ProviderId) ?? 'anthropic',
       providers: {
         anthropic: {
           apiKey: decrypt(stored.providers?.anthropic?.encryptedApiKey ?? ''),
-          model: stored.providers?.anthropic?.model ?? 'claude-sonnet-4-6'
+          model:  stored.providers?.anthropic?.model ?? 'claude-sonnet-4-6'
         },
         openai: {
           apiKey: decrypt(stored.providers?.openai?.encryptedApiKey ?? ''),
-          model: stored.providers?.openai?.model ?? 'gpt-4o'
+          model:  stored.providers?.openai?.model ?? 'gpt-4o'
+        },
+        kode: {
+          apiKey: '',
+          model:  stored.providers?.kode?.model ?? 'claude-sonnet-4-6'
+        },
+        copilot: {
+          apiKey: '',
+          model:  stored.providers?.copilot?.model ?? 'gpt-4o'
         }
-      }
+      },
+      mcpServers:    (stored as unknown as AppSettings).mcpServers ?? [],
+      mcpPermission: (stored as unknown as AppSettings).mcpPermission ?? 'full',
+      keybindings:   stored.keybindings,
+      editor:        stored.editor
     }
   } catch {
     return { ...DEFAULT_SETTINGS }
@@ -79,7 +108,14 @@ export function loadSettings(): AppSettings {
 }
 
 function saveSettings(settings: AppSettings): void {
-  const stored: StoredSettings = {
+  const existing: Partial<StoredSettings> = {}
+  try {
+    const raw = fs.readFileSync(settingsPath(), 'utf8')
+    Object.assign(existing, JSON.parse(raw))
+  } catch { /* first save */ }
+
+  const stored: Record<string, unknown> = {
+    ...existing,
     activeProvider: settings.activeProvider,
     providers: {
       anthropic: {
@@ -89,13 +125,19 @@ function saveSettings(settings: AppSettings): void {
       openai: {
         encryptedApiKey: encrypt(settings.providers.openai.apiKey),
         model: settings.providers.openai.model
-      }
-    }
+      },
+      kode:    { model: settings.providers.kode?.model ?? 'claude-sonnet-4-6' },
+      copilot: { model: settings.providers.copilot?.model ?? 'gpt-4o' }
+    },
+    mcpServers:    settings.mcpServers,
+    mcpPermission: settings.mcpPermission,
+    keybindings:   settings.keybindings,
+    editor:        settings.editor
   }
   try {
     fs.writeFileSync(settingsPath(), JSON.stringify(stored, null, 2), 'utf8')
   } catch {
-    // Disk write failed — in-memory state remains unchanged
+    // disk write failed — in-memory state remains unchanged
   }
 }
 
@@ -114,4 +156,5 @@ export function registerSettingsHandlers(): void {
   ipcMain.handle('settings:set', (_event, settings: AppSettings): void => {
     saveSettings(settings)
   })
+
 }

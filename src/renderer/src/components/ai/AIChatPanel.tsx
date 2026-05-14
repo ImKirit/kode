@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Trash2, Settings, Eye, Send, Square } from 'lucide-react'
+import { Trash2, Settings, Eye, Send, Square, Clock, X } from 'lucide-react'
 import { useScheduler } from '../../hooks/useScheduler'
 import { useSettings } from '../../hooks/useSettings'
 import { ChatMessage } from './ChatMessage'
@@ -97,10 +97,48 @@ export function AIChatPanel({
   }, [handleSend])
 
   const [weekTokens, setWeekTokens] = useState<number | null>(null)
+  const [showScheduler, setShowScheduler] = useState(false)
+  const [scheduleTime, setScheduleTime] = useState('')
+  const [scheduledList, setScheduledList] = useState<Array<{ id: string; prompt: string; triggerAt: number }>>([])
 
   useEffect(() => {
     window.kode.usage?.getStats().then(s => setWeekTokens(s.week)).catch(() => {})
   }, [sessionTokens])
+
+  // Listen for scheduled messages firing
+  useEffect(() => {
+    const un = window.kode.scheduler.onFire((prompt) => {
+      sendOrEnqueue(prompt, systemPrompt)
+    })
+    return un
+  }, [sendOrEnqueue, systemPrompt])
+
+  const refreshScheduled = useCallback(async () => {
+    const list = await window.kode.scheduler.list()
+    setScheduledList(list)
+  }, [])
+
+  useEffect(() => { refreshScheduled() }, [refreshScheduled])
+
+  const handleSchedule = useCallback(async () => {
+    if (!input.trim() || !scheduleTime) return
+    const [h, m] = scheduleTime.split(':').map(Number)
+    const now = new Date()
+    const target = new Date(now)
+    target.setHours(h, m, 0, 0)
+    if (target <= now) target.setDate(target.getDate() + 1)
+    const id = `sched-${Date.now()}`
+    await window.kode.scheduler.add(id, input.trim(), target.getTime())
+    setInput('')
+    setShowScheduler(false)
+    setScheduleTime('')
+    refreshScheduled()
+  }, [input, scheduleTime, refreshScheduled])
+
+  const handleCancelScheduled = useCallback(async (id: string) => {
+    await window.kode.scheduler.cancel(id)
+    refreshScheduled()
+  }, [refreshScheduled])
 
   const isBlocked = isStreaming || retryCountdown !== null
   const displayModel = settings?.providers[settings.activeProvider]?.model ?? ''
@@ -273,6 +311,68 @@ export function AIChatPanel({
         />
       )}
 
+      {/* Scheduler panel */}
+      {showScheduler && (
+        <div style={{
+          borderTop: '1px solid var(--border)', padding: '10px 12px',
+          background: 'var(--bg-primary)', flexShrink: 0
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, letterSpacing: '0.04em' }}>
+            Schedule Message
+          </div>
+          {scheduledList.length > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              {scheduledList.map(s => (
+                <div key={s.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px',
+                  background: 'var(--bg-secondary)', borderRadius: 6, marginBottom: 4,
+                  border: '1px solid var(--border)'
+                }}>
+                  <Clock size={10} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
+                    {new Date(s.triggerAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <span style={{ fontSize: 11, color: 'var(--text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {s.prompt}
+                  </span>
+                  <button onClick={() => handleCancelScheduled(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2, display: 'flex' }}>
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              type="time"
+              value={scheduleTime}
+              onChange={e => setScheduleTime(e.target.value)}
+              style={{
+                padding: '5px 8px', fontSize: 12, borderRadius: 6,
+                border: '1px solid var(--border)', background: 'var(--bg-primary)',
+                color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit'
+              }}
+            />
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', flex: 1 }}>
+              {input.trim() ? `"${input.trim().slice(0, 30)}${input.length > 30 ? '…' : ''}"` : 'Type a message to schedule'}
+            </span>
+            <button
+              onClick={handleSchedule}
+              disabled={!input.trim() || !scheduleTime}
+              style={{
+                padding: '5px 10px', fontSize: 11, borderRadius: 6,
+                background: input.trim() && scheduleTime ? 'var(--kode-btn)' : 'var(--kode-surface-2)',
+                color: input.trim() && scheduleTime ? 'var(--kode-btn-fg)' : 'var(--text-muted)',
+                border: 'none', cursor: input.trim() && scheduleTime ? 'pointer' : 'default',
+                fontFamily: 'inherit'
+              }}
+            >
+              Schedule
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Boxed input */}
       <div style={{ padding: '10px 12px 12px', flexShrink: 0 }}>
         <div style={{
@@ -331,6 +431,23 @@ export function AIChatPanel({
             )}
 
             <div style={{ flex: 1 }} />
+
+            {/* Schedule button */}
+            <button
+              onClick={() => setShowScheduler(v => !v)}
+              aria-label="Schedule message"
+              title="Schedule message"
+              style={{
+                background: showScheduler ? 'var(--kode-selection)' : 'transparent',
+                border: `1px solid ${showScheduler ? 'var(--accent)' : 'var(--border)'}`,
+                borderRadius: 10, padding: '2px 8px', fontSize: 10,
+                color: showScheduler ? 'var(--accent)' : 'var(--text-muted)',
+                cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0
+              }}
+            >
+              <Clock size={10} />
+              {scheduledList.length > 0 ? `${scheduledList.length}` : ''}
+            </button>
 
             {/* Auto-follow toggle */}
             <button

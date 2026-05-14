@@ -90,7 +90,13 @@ beforeEach(() => {
   mockUseScheduler.mockReturnValue(defaultSchedulerState())
   mockUseSettings.mockReturnValue(defaultSettingsState())
   ;(window as unknown as { kode: unknown }).kode = {
-    usage: { getStats: vi.fn().mockResolvedValue({ today: 0, week: 0, allTime: 0, byDay: {} }) }
+    usage: { getStats: vi.fn().mockResolvedValue({ today: 0, week: 0, allTime: 0, byDay: {} }) },
+    scheduler: {
+      onFire: vi.fn().mockReturnValue(() => {}),
+      add: vi.fn().mockResolvedValue(undefined),
+      cancel: vi.fn().mockResolvedValue(undefined),
+      list: vi.fn().mockResolvedValue([])
+    }
   }
 })
 

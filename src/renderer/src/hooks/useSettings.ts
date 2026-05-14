@@ -23,12 +23,11 @@ export const DEFAULT_EDITOR_CONFIG: EditorConfig = {
   lineNumbers: 'on'
 }
 
+export type ProviderId = 'anthropic' | 'openai' | 'kode' | 'copilot'
+
 export interface AppSettings {
-  activeProvider: 'anthropic' | 'openai'
-  providers: {
-    anthropic: ProviderConfig
-    openai: ProviderConfig
-  }
+  activeProvider: ProviderId
+  providers: Record<ProviderId, ProviderConfig>
   mcpServers: McpServerConfig[]
   mcpPermission: 'ask' | 'full'
   keybindings?: Record<string, string>
@@ -39,9 +38,9 @@ export interface UseSettingsResult {
   settings: AppSettings | null
   loading: boolean
   updateSettings(settings: AppSettings): Promise<void>
-  setActiveProvider(provider: 'anthropic' | 'openai'): Promise<void>
-  setProviderKey(provider: 'anthropic' | 'openai', apiKey: string): Promise<void>
-  setProviderModel(provider: 'anthropic' | 'openai', model: string): Promise<void>
+  setActiveProvider(provider: ProviderId): Promise<void>
+  setProviderKey(provider: ProviderId, apiKey: string): Promise<void>
+  setProviderModel(provider: ProviderId, model: string): Promise<void>
   addMcpServer(config: Omit<McpServerConfig, 'id'>): void
   removeMcpServer(id: string): void
   setMcpPermission(value: 'ask' | 'full'): void
@@ -64,7 +63,7 @@ export function useSettings(): UseSettingsResult {
     setSettingsState(next)
   }, [])
 
-  const setActiveProvider = useCallback(async (provider: 'anthropic' | 'openai') => {
+  const setActiveProvider = useCallback(async (provider: ProviderId) => {
     setSettingsState(prev => {
       if (!prev) return prev
       const next = { ...prev, activeProvider: provider }
@@ -73,7 +72,7 @@ export function useSettings(): UseSettingsResult {
     })
   }, [])
 
-  const setProviderKey = useCallback(async (provider: 'anthropic' | 'openai', apiKey: string) => {
+  const setProviderKey = useCallback(async (provider: ProviderId, apiKey: string) => {
     setSettingsState(prev => {
       if (!prev) return prev
       const next = {
@@ -88,7 +87,7 @@ export function useSettings(): UseSettingsResult {
     })
   }, [])
 
-  const setProviderModel = useCallback(async (provider: 'anthropic' | 'openai', model: string) => {
+  const setProviderModel = useCallback(async (provider: ProviderId, model: string) => {
     setSettingsState(prev => {
       if (!prev) return prev
       const next = {

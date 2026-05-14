@@ -16,6 +16,12 @@ beforeEach(() => {
         search: mockSearch,
         install: mockInstall,
         uninstall: mockUninstall
+      },
+      liveServer: {
+        status: vi.fn().mockResolvedValue({ running: false }),
+        start: vi.fn().mockResolvedValue({ ok: true, port: 5500 }),
+        stop: vi.fn().mockResolvedValue(undefined),
+        onReload: vi.fn().mockReturnValue(() => {})
       }
     },
     writable: true,
@@ -30,7 +36,7 @@ beforeEach(() => {
 describe('PluginBrowser', () => {
   it('renders the panel title', () => {
     render(<PluginBrowser />)
-    expect(screen.getByText('Plugin Marketplace')).toBeTruthy()
+    expect(screen.getByText('Extensions')).toBeTruthy()
   })
 
   it('shows installed plugins on load', async () => {
@@ -70,19 +76,19 @@ describe('PluginBrowser', () => {
     mockList.mockResolvedValue([])
     render(<PluginBrowser />)
     await waitFor(() => {
-      expect(screen.getByText(/No plugins installed/i)).toBeTruthy()
+      expect(screen.getByText(/No npm plugins installed/i)).toBeTruthy()
     })
   })
 
   it('has a search input', () => {
     render(<PluginBrowser />)
-    expect(screen.getByPlaceholderText(/Search plugins/i)).toBeTruthy()
+    expect(screen.getByPlaceholderText(/Search marketplace/i)).toBeTruthy()
   })
 
   it('calls search when input changes', async () => {
     mockSearch.mockResolvedValue([])
     render(<PluginBrowser />)
-    const input = screen.getByPlaceholderText(/Search plugins/i)
+    const input = screen.getByPlaceholderText(/Search marketplace/i)
     fireEvent.change(input, { target: { value: 'git' } })
     await waitFor(() => {
       expect(mockSearch).toHaveBeenCalledWith('git')
@@ -94,7 +100,7 @@ describe('PluginBrowser', () => {
       { id: 'kode-plugin-eslint', name: 'kode-plugin-eslint', description: 'ESLint', version: '2.0.0' }
     ])
     render(<PluginBrowser />)
-    const input = screen.getByPlaceholderText(/Search plugins/i)
+    const input = screen.getByPlaceholderText(/Search marketplace/i)
     fireEvent.change(input, { target: { value: 'eslint' } })
     await waitFor(() => {
       expect(screen.getByText('kode-plugin-eslint')).toBeTruthy()
@@ -107,7 +113,7 @@ describe('PluginBrowser', () => {
       { id: 'kode-plugin-eslint', name: 'kode-plugin-eslint', description: 'ESLint', version: '2.0.0' }
     ])
     render(<PluginBrowser />)
-    fireEvent.change(screen.getByPlaceholderText(/Search plugins/i), { target: { value: 'eslint' } })
+    fireEvent.change(screen.getByPlaceholderText(/Search marketplace/i), { target: { value: 'eslint' } })
     await waitFor(() => screen.getByText('Install'))
     fireEvent.click(screen.getByText('Install'))
     await waitFor(() => {
@@ -123,7 +129,7 @@ describe('PluginBrowser', () => {
       { id: 'kode-plugin-x', name: 'kode-plugin-x', description: '', version: '1.0.0' }
     ])
     render(<PluginBrowser />)
-    fireEvent.change(screen.getByPlaceholderText(/Search plugins/i), { target: { value: 'x' } })
+    fireEvent.change(screen.getByPlaceholderText(/Search marketplace/i), { target: { value: 'x' } })
     await waitFor(() => screen.getByText('Install'))
     fireEvent.click(screen.getByText('Install'))
     // Button should show loading state

@@ -1,5 +1,7 @@
 import type { FileEntry } from '.'
 
+export type ProviderId = 'anthropic' | 'openai' | 'kode' | 'copilot'
+
 export interface FileStatus {
   path: string
   status: string
@@ -89,14 +91,19 @@ export interface PluginSearchResult {
 }
 
 export interface AppSettings {
-  activeProvider: 'anthropic' | 'openai'
-  providers: {
-    anthropic: ProviderConfig
-    openai: ProviderConfig
-  }
+  activeProvider: ProviderId
+  providers: Record<ProviderId, ProviderConfig>
   mcpServers: McpServerConfig[]
   mcpPermission: 'ask' | 'full'
   keybindings?: Record<string, string>
+  editor?: {
+    fontSize: number
+    tabSize: number
+    wordWrap: 'on' | 'off' | 'wordWrapColumn' | 'bounded'
+    minimap: boolean
+    lineNumbers: 'on' | 'off' | 'relative'
+    formatOnSave: boolean
+  }
 }
 
 declare global {
@@ -113,7 +120,7 @@ declare global {
         onFileChange(cb: (filePath: string, content: string) => void): () => void
       }
       terminal: {
-        spawn(cols: number, rows: number): Promise<string>
+        spawn(cols: number, rows: number, cwd?: string): Promise<string>
         write(termId: string, data: string): void
         resize(termId: string, cols: number, rows: number): void
         kill(termId: string): void
@@ -139,14 +146,75 @@ declare global {
         onToolCall(cb: (e: ToolCallEvent) => void): () => void
         onToolResult(cb: (e: ToolResultEvent) => void): () => void
         onToolApproval(cb: (e: ToolApprovalRequest) => void): () => void
+        onUsage(cb: (e: { inputTokens: number; outputTokens: number }) => void): () => void
         approveTool(callId: string): void
         denyTool(callId: string): void
       }
       git: {
         status(rootPath: string): Promise<FileStatus[]>
+        statusFull(rootPath: string): Promise<{
+          files: Array<{ path: string; index: string; workingDir: string; staged: boolean; modified: boolean }>
+          ahead: number; behind: number; current: string | null; tracking: string | null
+        }>
         diff(rootPath: string, filePath?: string, cached?: boolean): Promise<string>
         stage(rootPath: string, filePath: string): Promise<void>
+        stageAll(rootPath: string): Promise<void>
+        unstage(rootPath: string, filePath: string): Promise<void>
         commit(rootPath: string, message: string): Promise<void>
+        push(rootPath: string, remote?: string, branch?: string): Promise<void>
+        pull(rootPath: string, remote?: string, branch?: string): Promise<void>
+        log(rootPath: string, maxCount?: number): Promise<Array<{ hash: string; message: string; author: string; date: string }>>
+        branches(rootPath: string): Promise<{ all: string[]; current: string }>
+        currentBranch(rootPath: string): Promise<string>
+        init(rootPath: string): Promise<void>
+        addRemote(rootPath: string, remoteName: string, remoteUrl: string): Promise<void>
+        hasRemote(rootPath: string): Promise<boolean>
+      }
+      github: {
+        hasToken(): Promise<boolean>
+        setToken(token: string): Promise<void>
+        clearToken(): Promise<void>
+        validateToken(token: string): Promise<{ valid: boolean; user?: { login: string; name: string | null; avatarUrl: string; publicRepos: number }; error?: string }>
+        getUser(): Promise<{ login: string; name: string | null; avatarUrl: string; publicRepos: number } | null>
+        listRepos(): Promise<Array<{ id: number; name: string; fullName: string; private: boolean; cloneUrl: string; htmlUrl: string; description: string | null; updatedAt: string }>>
+        createRepo(opts: { name: string; description: string; private: boolean; autoInit: boolean; gitignoreTemplate: string | null; license: string | null }): Promise<{ id: number; name: string; fullName: string; private: boolean; cloneUrl: string; htmlUrl: string; description: string | null; updatedAt: string }>
+        getGitignoreTemplates(): Promise<string[]>
+        getLinkedRepo(folderPath: string): Promise<{ owner: string; repo: string; fullName: string; cloneUrl: string; private: boolean } | null>
+        setLinkedRepo(folderPath: string, repo: { owner: string; repo: string; fullName: string; cloneUrl: string; private: boolean }): Promise<void>
+        unlinkRepo(folderPath: string): Promise<void>
+        startDeviceFlow(): Promise<{ deviceCode: string; userCode: string; verificationUri: string; expiresIn: number; interval: number } | { error: string }>
+        pollDeviceToken(deviceCode: string): Promise<{ ok: boolean; token?: string; error?: string }>
+        openDevicePage(uri: string): Promise<void>
+      }
+      deploy: {
+        getConfig(): Promise<{ ip: string; user: string; keyPath: string; workDir: string } | null>
+        setConfig(config: { ip: string; user: string; keyPath: string; workDir: string }): Promise<void>
+        testConnection(): Promise<{ ok: boolean; error?: string; info?: string }>
+        setup(): Promise<{ ok: boolean; output?: string; error?: string }>
+        execute(command: string): Promise<{ ok: boolean; output?: string; error?: string }>
+      }
+      usage: {
+        add(count: number): Promise<void>
+        getStats(): Promise<{ today: number; week: number; allTime: number; byDay: Record<string, number> }>
+      }
+      auth: {
+        getSession(): Promise<{ token: string; email: string; name?: string; plan?: string } | null>
+        login(email: string, password: string): Promise<{ ok: boolean; error?: string; email?: string; name?: string; plan?: string }>
+        signup(email: string, password: string): Promise<{ ok: boolean; error?: string; email?: string; name?: string; plan?: string }>
+        logout(): Promise<void>
+        getToken(): Promise<string | null>
+      }
+      liveServer: {
+        start(rootPath: string, port?: number): Promise<{ ok: boolean; port?: number; error?: string }>
+        stop(): Promise<void>
+        status(): Promise<{ running: boolean; port?: number; rootPath?: string }>
+        onReload(cb: () => void): () => void
+      }
+      scheduler: {
+        add(id: string, prompt: string, triggerAt: number): Promise<void>
+        cancel(id: string): Promise<void>
+        list(): Promise<Array<{ id: string; prompt: string; triggerAt: number }>>
+        onFire(cb: (prompt: string) => void): () => void
       }
       setTitle(title: string): void
       mcp: {

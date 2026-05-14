@@ -249,7 +249,7 @@ export function App() {
               </button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto' }}>
-              <PluginBrowser />
+              <PluginBrowser rootPath={project.rootPath} />
             </div>
           </div>
         </div>

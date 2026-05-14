@@ -1,6 +1,24 @@
-import { ipcMain, app, safeStorage } from 'electron'
+import { ipcMain, app, safeStorage, shell } from 'electron'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+
+// GitHub OAuth App for Kode — create yours at github.com/settings/developers
+// Set GITHUB_CLIENT_ID env var to override (for development/custom deployments)
+const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID ?? 'Ov23liXXXXXXXXXXXXXX'
+
+export interface DeviceFlowStart {
+  deviceCode: string
+  userCode: string
+  verificationUri: string
+  expiresIn: number
+  interval: number
+}
+
+export interface DeviceFlowResult {
+  ok: boolean
+  token?: string
+  error?: string
+}
 
 export interface GitHubUser {
   login: string
@@ -216,5 +234,65 @@ export function registerGithubHandlers(): void {
     const links = getLinks()
     delete links[folderPath]
     saveLinks(links)
+  })
+
+  // ── Device Flow OAuth ──────────────────────────────────────────────────
+  ipcMain.handle('github:startDeviceFlow', async (): Promise<DeviceFlowStart | { error: string }> => {
+    try {
+      const res = await fetch('https://github.com/login/device/code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ client_id: GITHUB_CLIENT_ID, scope: 'repo read:user' })
+      })
+      const data = await res.json() as {
+        device_code?: string; user_code?: string; verification_uri?: string
+        expires_in?: number; interval?: number; error?: string; error_description?: string
+      }
+      if (!data.device_code) {
+        return { error: data.error_description ?? data.error ?? 'Failed to start device flow' }
+      }
+      // Open the verification URL automatically
+      shell.openExternal(data.verification_uri ?? 'https://github.com/login/device')
+      return {
+        deviceCode: data.device_code,
+        userCode: data.user_code ?? '',
+        verificationUri: data.verification_uri ?? 'https://github.com/login/device',
+        expiresIn: data.expires_in ?? 900,
+        interval: data.interval ?? 5
+      }
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'Network error' }
+    }
+  })
+
+  ipcMain.handle('github:pollDeviceToken', async (_e, deviceCode: string): Promise<DeviceFlowResult> => {
+    try {
+      const res = await fetch('https://github.com/login/oauth/access_token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          client_id: GITHUB_CLIENT_ID,
+          device_code: deviceCode,
+          grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
+        })
+      })
+      const data = await res.json() as {
+        access_token?: string; error?: string; error_description?: string
+      }
+      if (data.access_token) {
+        storeToken(data.access_token)
+        return { ok: true, token: data.access_token }
+      }
+      if (data.error === 'authorization_pending') return { ok: false, error: 'pending' }
+      if (data.error === 'slow_down') return { ok: false, error: 'slow_down' }
+      if (data.error === 'expired_token') return { ok: false, error: 'expired' }
+      return { ok: false, error: data.error_description ?? data.error ?? 'Unknown error' }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : 'Network error' }
+    }
+  })
+
+  ipcMain.handle('github:openDevicePage', async (_e, uri: string): Promise<void> => {
+    await shell.openExternal(uri)
   })
 }

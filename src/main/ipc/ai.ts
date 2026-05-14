@@ -3,6 +3,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { loadSettings } from './settings'
 import { mcpManager } from '../mcp/McpManager'
+import { readAuthToken } from './auth'
+import { getStoredGithubToken } from './github'
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string }
 
@@ -10,8 +12,11 @@ let currentStream: ReturnType<Anthropic['messages']['stream']> | null = null
 let openaiAbortController: AbortController | null = null
 let registered = false
 
-// Module-level map for pending tool approvals in Ask mode
 const pendingApprovals = new Map<string, (approved: boolean) => void>()
+
+function backendUrl(): string {
+  return process.env.KODE_BACKEND_URL ?? 'https://api.kode.dev'
+}
 
 export function _resetRegistered(): void {
   registered = false
@@ -21,7 +26,6 @@ export function registerAiHandlers(): void {
   if (registered) return
   registered = true
 
-  // One-shot approval responses from renderer
   ipcMain.on('ai:approveTool', (_event, callId: string) => {
     pendingApprovals.get(callId)?.(true)
     pendingApprovals.delete(callId)
@@ -39,22 +43,144 @@ export function registerAiHandlers(): void {
 
     const settings = loadSettings()
     const provider = settings.activeProvider
-    const { apiKey, model } = settings.providers[provider]
 
     const win = BrowserWindow.fromWebContents(event.sender)
     const send = (channel: string, ...args: unknown[]): void => {
       if (win && !win.isDestroyed()) win.webContents.send(channel, ...args)
     }
 
+    // ── Kode Subscription ──────────────────────────────────────────────────
+    if (provider === 'kode') {
+      const token = await readAuthToken()
+      if (!token) {
+        send('ai:error', 'Sign in to your Kode account to use Kode AI. Open Settings > Account.')
+        return
+      }
+      const model = settings.providers.kode?.model ?? 'claude-sonnet-4-6'
+      openaiAbortController = new AbortController()
+      try {
+        const res = await fetch(`${backendUrl()}/ai/stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ messages, systemPrompt, model }),
+          signal: openaiAbortController.signal
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ message: `Server error ${res.status}` })) as { message?: string }
+          if (res.status === 402) {
+            send('ai:error', 'Your Kode subscription has reached its limit. Upgrade in Settings > Account.')
+          } else if (res.status === 429) {
+            send('ai:rateLimit', 60000)
+          } else {
+            send('ai:error', err.message ?? `Backend error ${res.status}`)
+          }
+          return
+        }
+        const reader = res.body?.getReader()
+        if (!reader) { send('ai:done'); return }
+        const dec = new TextDecoder()
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          const chunk = dec.decode(value)
+          for (const line of chunk.split('\n')) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6).trim()
+              if (data === '[DONE]') break
+              try {
+                const obj = JSON.parse(data) as { token?: string; usage?: { inputTokens: number; outputTokens: number } }
+                if (obj.token) send('ai:token', obj.token)
+                if (obj.usage) send('ai:usage', obj.usage)
+              } catch { /* ignore parse errors */ }
+            }
+          }
+        }
+        openaiAbortController = null
+        send('ai:done')
+      } catch (err) {
+        openaiAbortController = null
+        if (err instanceof Error && err.name === 'AbortError') {
+          send('ai:done')
+        } else {
+          send('ai:error', err instanceof Error ? err.message : String(err))
+        }
+      }
+      return
+    }
+
+    // ── GitHub Copilot ─────────────────────────────────────────────────────
+    if (provider === 'copilot') {
+      const githubToken = getStoredGithubToken()
+      if (!githubToken) {
+        send('ai:error', 'Sign in with GitHub to use Copilot. Open Settings > Account.')
+        return
+      }
+      const model = settings.providers.copilot?.model ?? 'gpt-4o'
+      openaiAbortController = new AbortController()
+      try {
+        // Get a Copilot token from GitHub's auth endpoint
+        const tokenRes = await fetch('https://api.github.com/copilot_internal/v2/token', {
+          headers: {
+            Authorization: `token ${githubToken}`,
+            'Editor-Version': 'Kode/1.0',
+            'Editor-Plugin-Version': 'kode-ai/1.0'
+          }
+        })
+        if (!tokenRes.ok) {
+          if (tokenRes.status === 401) {
+            send('ai:error', 'GitHub token expired or lacks Copilot scope. Re-authenticate in Settings > Account.')
+          } else if (tokenRes.status === 403) {
+            send('ai:error', 'GitHub Copilot subscription required. Subscribe at github.com/features/copilot.')
+          } else {
+            send('ai:error', `GitHub Copilot auth failed (${tokenRes.status}).`)
+          }
+          return
+        }
+        const { token: copilotToken } = await tokenRes.json() as { token: string }
+
+        const client = new OpenAI({
+          apiKey: copilotToken,
+          baseURL: 'https://api.githubcopilot.com'
+        })
+        openaiAbortController = new AbortController()
+        const stream = await client.chat.completions.create({
+          model,
+          messages,
+          stream: true
+        }, { signal: openaiAbortController.signal })
+        for await (const chunk of stream) {
+          const text = chunk.choices[0]?.delta?.content ?? ''
+          if (text) send('ai:token', text)
+        }
+        openaiAbortController = null
+        send('ai:done')
+      } catch (err) {
+        openaiAbortController = null
+        if (err instanceof Error && err.name === 'AbortError') {
+          send('ai:done')
+        } else if ((err as { status?: number }).status === 429) {
+          send('ai:rateLimit', 60000)
+        } else {
+          send('ai:error', err instanceof Error ? err.message : String(err))
+        }
+      }
+      return
+    }
+
+    // ── Anthropic / OpenAI (direct API key) ────────────────────────────────
+    const { apiKey, model } = settings.providers[provider] ?? { apiKey: '', model: '' }
+
     if (!apiKey.trim()) {
-      send('ai:error', `No API key configured for ${provider}. Open settings to add one.`)
+      send('ai:error', `No API key configured for ${provider}. Open Settings to add one, or sign in with your Kode account.`)
       return
     }
 
     if (provider === 'anthropic') {
       const client = new Anthropic({ apiKey })
 
-      // Build tools from McpManager
       const mcpTools = mcpManager.listTools()
       const tools: Anthropic.Tool[] = mcpTools.map(t => ({
         name: `${t.serverId}__${t.name}`,
@@ -62,7 +188,6 @@ export function registerAiHandlers(): void {
         input_schema: t.inputSchema as Anthropic.Tool['input_schema']
       }))
 
-      // HTTP servers — Anthropic handles these server-side
       const httpServers = (settings.mcpServers ?? [])
         .filter(s => s.type === 'http' && s.url)
         .map(s => ({ type: 'url' as const, url: s.url! }))
@@ -78,7 +203,6 @@ export function registerAiHandlers(): void {
             ...(systemPrompt ? { system: systemPrompt } : {}),
             ...(tools.length > 0 ? { tools } : {}),
           }
-          // Attach mcp_servers if any (cast needed — SDK may not have this type yet)
           if (httpServers.length > 0) {
             streamParams['mcp_servers'] = httpServers
           }
@@ -120,7 +244,6 @@ export function registerAiHandlers(): void {
 
           for (const block of toolUseBlocks) {
             const callId = block.id
-            // Parse server and tool name from namespaced name: "serverId__toolName"
             const doubleUnderIdx = block.name.indexOf('__')
             const serverId = doubleUnderIdx >= 0 ? block.name.slice(0, doubleUnderIdx) : block.name
             const toolName = doubleUnderIdx >= 0 ? block.name.slice(doubleUnderIdx + 2) : block.name
@@ -136,27 +259,16 @@ export function registerAiHandlers(): void {
 
             if (!approved) {
               send('ai:toolResult', { callId, result: 'Tool call denied by user', isError: true })
-              toolResults.push({
-                type: 'tool_result',
-                tool_use_id: callId,
-                content: 'Denied by user',
-                is_error: true
-              })
+              toolResults.push({ type: 'tool_result', tool_use_id: callId, content: 'Denied by user', is_error: true })
               continue
             }
 
             send('ai:toolCall', { callId, toolName, serverId, args })
             const result = await mcpManager.callTool(serverId, toolName, args)
             send('ai:toolResult', { callId, result: result.content, isError: result.isError })
-            toolResults.push({
-              type: 'tool_result',
-              tool_use_id: callId,
-              content: result.content,
-              is_error: result.isError
-            })
+            toolResults.push({ type: 'tool_result', tool_use_id: callId, content: result.content, is_error: result.isError })
           }
 
-          // Append assistant turn + tool results, loop
           currentMessages = [
             ...currentMessages,
             { role: 'assistant', content: assistantContent } as unknown as ChatMessage,
@@ -219,7 +331,6 @@ export function registerAiHandlers(): void {
     currentStream = null
     openaiAbortController?.abort()
     openaiAbortController = null
-    // Reject all pending approvals
     for (const [, resolve] of pendingApprovals) resolve(false)
     pendingApprovals.clear()
   })
