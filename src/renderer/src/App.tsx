@@ -18,11 +18,15 @@ import { ThreadsPanel } from './components/ai/ThreadsPanel'
 import { BottomPanel } from './components/layout/BottomPanel'
 import { SettingsPanel } from './components/settings/SettingsPanel'
 import { PluginBrowser } from './components/plugins/PluginBrowser'
+import { ChangesView } from './components/git/ChangesView'
+
+type SettingsTab = 'appearance' | 'editor' | 'mcp' | 'keybindings' | 'github' | 'deploy' | 'account'
 
 export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>('appearance')
   const [pluginBrowserOpen, setPluginBrowserOpen] = useState(false)
-  const [sidebarView, setSidebarView] = useState<'files' | 'threads'>('files')
+  const [sidebarView, setSidebarView] = useState<'files' | 'threads' | 'git'>('files')
 
   const themeState = useTheme()
   const { settings, addMcpServer, removeMcpServer, setMcpPermission, setKeybinding, setEditorConfig } = useSettings()
@@ -59,9 +63,14 @@ export function App() {
     onToggleAiPanel: layout.toggleAiPanel,
     onSaveFile: () => activeFilePath && saveFile(activeFilePath),
     onOpenFolder: openFolder,
-    onOpenSettings: () => setSettingsOpen(true),
+    onOpenSettings: () => { setSettingsTab('appearance'); setSettingsOpen(true) },
     keybindings: settings?.keybindings
   })
+
+  const openSettings = useCallback((tab: SettingsTab = 'appearance') => {
+    setSettingsTab(tab)
+    setSettingsOpen(true)
+  }, [])
 
   const handleToggleSidebar = useCallback(() => {
     if (sidebarView !== 'files') {
@@ -75,6 +84,15 @@ export function App() {
   const handleShowThreads = useCallback(() => {
     if (sidebarView !== 'threads') {
       setSidebarView('threads')
+      if (!layout.sidebarVisible) layout.toggleSidebar()
+    } else {
+      layout.toggleSidebar()
+    }
+  }, [sidebarView, layout])
+
+  const handleShowGit = useCallback(() => {
+    if (sidebarView !== 'git') {
+      setSidebarView('git')
       if (!layout.sidebarVisible) layout.toggleSidebar()
     } else {
       layout.toggleSidebar()
@@ -102,7 +120,7 @@ export function App() {
             projectName={project.name}
             onOpenFolder={openFolder}
             onSave={() => activeFilePath && saveFile(activeFilePath)}
-            onOpenSettings={() => setSettingsOpen(true)}
+            onOpenSettings={() => openSettings()}
           />
         }
         activityBar={
@@ -114,9 +132,12 @@ export function App() {
             pluginBrowserOpen={pluginBrowserOpen}
             onToggleSidebar={handleToggleSidebar}
             onShowThreads={handleShowThreads}
+            onShowGit={handleShowGit}
             onToggleAiPanel={layout.toggleAiPanel}
             onToggleBottomPanel={layout.toggleBottomPanel}
             onTogglePluginBrowser={() => setPluginBrowserOpen(v => !v)}
+            onOpenSettings={() => openSettings()}
+            onOpenDeploy={() => openSettings('deploy')}
           />
         }
         sidebar={
@@ -134,6 +155,8 @@ export function App() {
               onSearch={chatHistory.search}
               onClearSearch={chatHistory.clearSearch}
             />
+          ) : sidebarView === 'git' ? (
+            <ChangesView rootPath={project.rootPath} />
           ) : (
             <FileTree
               rootPath={project.rootPath}
@@ -166,6 +189,7 @@ export function App() {
             onSaveMessage={chatHistory.saveMessage}
             activeProvider={activeProvider}
             activeModel={activeModel}
+            onOpenAccountSettings={() => openSettings('account')}
           />
         }
         bottomPanel={<BottomPanel rootPath={project.rootPath} />}
@@ -189,6 +213,7 @@ export function App() {
       <SettingsPanel
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+        initialTab={settingsTab}
         theme={themeState.theme}
         customPrimary={themeState.customPrimary}
         customAccent={themeState.customAccent}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Download, Upload } from 'lucide-react'
 import { AppearanceSettings } from './AppearanceSettings'
 import { EditorSettings } from './EditorSettings'
@@ -12,9 +12,12 @@ import type { McpServerConfig } from '../../types/electron'
 import type { KeybindingAction } from '../../styles/keybindings'
 import type { EditorConfig } from '../../hooks/useSettings'
 
+type SettingsTab = 'appearance' | 'editor' | 'mcp' | 'keybindings' | 'github' | 'deploy' | 'account'
+
 interface SettingsPanelProps {
   open: boolean
   onClose(): void
+  initialTab?: SettingsTab
   theme: ThemeName
   customPrimary: string
   customAccent: string
@@ -33,11 +36,15 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({
-  open, onClose, theme, customPrimary, customAccent, onSetTheme, onSetCustomColors,
+  open, onClose, initialTab, theme, customPrimary, customAccent, onSetTheme, onSetCustomColors,
   mcpServers, mcpPermission, onAddMcpServer, onRemoveMcpServer, onSetMcpPermission,
   keybindings, onSetKeybinding, editorConfig, onSetEditorConfig, currentFolder
 }: SettingsPanelProps) {
-  const [activeTab, setActiveTab] = useState<'appearance' | 'editor' | 'mcp' | 'keybindings' | 'github' | 'deploy' | 'account'>('appearance')
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab ?? 'appearance')
+
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab)
+  }, [initialTab])
 
   if (!open) return null
 

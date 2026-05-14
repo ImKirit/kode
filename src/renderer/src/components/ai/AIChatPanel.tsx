@@ -3,10 +3,13 @@ import { Trash2, Settings, Eye, Send, Square, Clock, X } from 'lucide-react'
 import { useScheduler } from '../../hooks/useScheduler'
 import { useSettings } from '../../hooks/useSettings'
 import { ChatMessage } from './ChatMessage'
-import { ProviderSettings } from './ProviderSettings'
+import { ProviderSettings, PROVIDER_MODELS } from './ProviderSettings'
 import { QueueDisplay } from './QueueDisplay'
 import { PermissionDialog } from './PermissionDialog'
 import type { ChatSession } from '../../types/electron'
+
+type EffortLevel = 'low' | 'medium' | 'high'
+type PermLevel = 'read' | 'write' | 'full'
 
 interface AIChatPanelProps {
   autoFollowEnabled: boolean
@@ -19,12 +22,13 @@ interface AIChatPanelProps {
   onCreateSession?(name: string, provider: string, model: string): Promise<ChatSession>
   onSetSessionId?(id: string): void
   onSaveMessage?(sessionId: string, role: string, content: string): Promise<void>
+  onOpenAccountSettings?(): void
 }
 
 export function AIChatPanel({
   autoFollowEnabled, onToggleAutoFollow, systemPrompt, hasClaudeContext,
   currentSessionId, activeProvider = '', activeModel = '',
-  onCreateSession, onSetSessionId, onSaveMessage
+  onCreateSession, onSetSessionId, onSaveMessage, onOpenAccountSettings
 }: AIChatPanelProps) {
   const {
     messages, isStreaming, error, retryCountdown, queue,
@@ -96,6 +100,8 @@ export function AIChatPanel({
     }
   }, [handleSend])
 
+  const [effort, setEffort] = useState<EffortLevel>('medium')
+  const [perms, setPerms] = useState<PermLevel>('write')
   const [weekTokens, setWeekTokens] = useState<number | null>(null)
   const [showScheduler, setShowScheduler] = useState(false)
   const [scheduleTime, setScheduleTime] = useState('')
@@ -142,7 +148,6 @@ export function AIChatPanel({
 
   const isBlocked = isStreaming || retryCountdown !== null
   const displayModel = settings?.providers[settings.activeProvider]?.model ?? ''
-  const modelLabel = displayModel ? displayModel.split('-').slice(0, 3).join('-') : ''
 
   const contextWindow = displayModel.includes('gpt-4o') ? 128000
     : displayModel.includes('haiku') ? 200000
@@ -246,6 +251,7 @@ export function AIChatPanel({
           onSetProviderKey={setProviderKey}
           onSetProviderModel={setProviderModel}
           onClose={() => setShowSettings(false)}
+          onOpenAccountSettings={() => { setShowSettings(false); onOpenAccountSettings?.() }}
         />
       )}
 
@@ -413,22 +419,61 @@ export function AIChatPanel({
             alignItems: 'center',
             gap: 6,
             padding: '6px 10px',
-            borderTop: '1px solid var(--kode-border-dim)'
+            borderTop: '1px solid var(--kode-border-dim)',
+            flexWrap: 'wrap'
           }}>
-            {modelLabel && (
-              <span style={{
-                fontSize: 10,
-                color: 'var(--text-muted)',
-                background: 'var(--kode-surface-2)',
-                border: '1px solid var(--border)',
-                borderRadius: 10,
-                padding: '2px 8px',
-                fontFamily: 'var(--font-editor)',
-                flexShrink: 0
-              }}>
-                {modelLabel}
-              </span>
+            {/* Model selector */}
+            {settings && (PROVIDER_MODELS[settings.activeProvider] ?? []).length > 0 && (
+              <select
+                value={settings.providers[settings.activeProvider]?.model || PROVIDER_MODELS[settings.activeProvider]?.[0]?.id}
+                onChange={e => setProviderModel(settings.activeProvider, e.target.value)}
+                aria-label="Model"
+                style={{
+                  fontSize: 10, color: 'var(--text-muted)', background: 'var(--kode-surface-2)',
+                  border: '1px solid var(--border)', borderRadius: 10, padding: '2px 6px',
+                  fontFamily: 'var(--font-editor)', flexShrink: 0, cursor: 'pointer',
+                  outline: 'none', appearance: 'none', maxWidth: 110
+                }}
+              >
+                {(PROVIDER_MODELS[settings.activeProvider] ?? []).map(m => (
+                  <option key={m.id} value={m.id}>{m.id.split('-').slice(0, 3).join('-')}</option>
+                ))}
+              </select>
             )}
+
+            {/* Effort selector */}
+            <select
+              value={effort}
+              onChange={e => setEffort(e.target.value as EffortLevel)}
+              aria-label="Effort"
+              style={{
+                fontSize: 10, color: 'var(--text-muted)', background: 'var(--kode-surface-2)',
+                border: '1px solid var(--border)', borderRadius: 10, padding: '2px 6px',
+                fontFamily: 'inherit', flexShrink: 0, cursor: 'pointer',
+                outline: 'none', appearance: 'none'
+              }}
+            >
+              <option value="low">Fast</option>
+              <option value="medium">Balanced</option>
+              <option value="high">Deep</option>
+            </select>
+
+            {/* Perms selector */}
+            <select
+              value={perms}
+              onChange={e => setPerms(e.target.value as PermLevel)}
+              aria-label="Permissions"
+              style={{
+                fontSize: 10, color: 'var(--text-muted)', background: 'var(--kode-surface-2)',
+                border: '1px solid var(--border)', borderRadius: 10, padding: '2px 6px',
+                fontFamily: 'inherit', flexShrink: 0, cursor: 'pointer',
+                outline: 'none', appearance: 'none'
+              }}
+            >
+              <option value="read">Read</option>
+              <option value="write">Write</option>
+              <option value="full">Full</option>
+            </select>
 
             <div style={{ flex: 1 }} />
 

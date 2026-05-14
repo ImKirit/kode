@@ -14,19 +14,24 @@ const mockSetProviderKey = vi.hoisted(() => vi.fn().mockResolvedValue(undefined)
 const mockSetProviderModel = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
 const mockUpdateSettings = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
 const mockUseSettings = vi.hoisted(() => vi.fn())
+const mockOnOpenAccountSettings = vi.hoisted(() => vi.fn())
 
 vi.mock('@renderer/hooks/useScheduler', () => ({ useScheduler: mockUseScheduler }))
 vi.mock('@renderer/hooks/useSettings', () => ({ useSettings: mockUseSettings }))
 vi.mock('@renderer/components/ai/ChatMessage', () => ({
   ChatMessage: ({ content }: { content: string }) => <div data-testid="chat-message">{content}</div>
 }))
-vi.mock('@renderer/components/ai/ProviderSettings', () => ({
-  ProviderSettings: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="provider-settings">
-      <button onClick={onClose}>Close Settings</button>
-    </div>
-  )
-}))
+vi.mock('@renderer/components/ai/ProviderSettings', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@renderer/components/ai/ProviderSettings')>()
+  return {
+    ...actual,
+    ProviderSettings: ({ onClose }: { onClose: () => void }) => (
+      <div data-testid="provider-settings">
+        <button onClick={onClose}>Close Settings</button>
+      </div>
+    )
+  }
+})
 vi.mock('@renderer/components/ai/QueueDisplay', () => ({
   QueueDisplay: ({ queue, retryCountdown, onRemove, onClearQueue }: {
     queue: string[]; retryCountdown: number | null;
@@ -87,6 +92,7 @@ beforeEach(() => {
   mockStop.mockClear()
   mockClearMessages.mockClear()
   mockOnToggleAutoFollow.mockClear()
+  mockOnOpenAccountSettings.mockClear()
   mockUseScheduler.mockReturnValue(defaultSchedulerState())
   mockUseSettings.mockReturnValue(defaultSettingsState())
   ;(window as unknown as { kode: unknown }).kode = {
@@ -111,9 +117,9 @@ describe('AIChatPanel', () => {
     expect(screen.getByRole('button', { name: /settings/i })).toBeInTheDocument()
   })
 
-  it('shows model badge with current provider and model', () => {
+  it('shows model selector for current provider', () => {
     render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
-    expect(screen.getByText(/claude-sonnet/i)).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /model/i })).toBeInTheDocument()
   })
 
   it('renders the message input textarea', () => {

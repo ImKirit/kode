@@ -1,16 +1,19 @@
-import { Files, Terminal, MessageSquare, Package, Clock } from 'lucide-react'
+import { Files, Terminal, MessageSquare, Package, Clock, Settings, GitBranch, Upload } from 'lucide-react'
 
 interface ActivityBarProps {
   sidebarVisible: boolean
-  sidebarView: 'files' | 'threads'
+  sidebarView: 'files' | 'threads' | 'git'
   aiPanelVisible: boolean
   bottomPanelVisible: boolean
   pluginBrowserOpen?: boolean
   onToggleSidebar(): void
   onShowThreads(): void
+  onShowGit(): void
   onToggleAiPanel(): void
   onToggleBottomPanel(): void
   onTogglePluginBrowser?(): void
+  onOpenSettings?(): void
+  onOpenDeploy?(): void
 }
 
 interface BtnProps {
@@ -68,9 +71,12 @@ export function ActivityBar({
   pluginBrowserOpen = false,
   onToggleSidebar,
   onShowThreads,
+  onShowGit,
   onToggleAiPanel,
   onToggleBottomPanel,
-  onTogglePluginBrowser
+  onTogglePluginBrowser,
+  onOpenSettings,
+  onOpenDeploy
 }: ActivityBarProps) {
   return (
     <div
@@ -84,6 +90,7 @@ export function ActivityBar({
         flexShrink: 0,
         alignItems: 'center',
         paddingTop: 6,
+        paddingBottom: 6,
         gap: 2
       }}
     >
@@ -98,6 +105,12 @@ export function ActivityBar({
         active={sidebarVisible && sidebarView === 'threads'}
         label="Toggle Threads"
         onClick={onShowThreads}
+      />
+      <ActivityBarButton
+        icon={<GitBranch size={17} />}
+        active={sidebarVisible && sidebarView === 'git'}
+        label="Toggle Git"
+        onClick={onShowGit}
       />
       <ActivityBarButton
         icon={<MessageSquare size={17} />}
@@ -117,6 +130,25 @@ export function ActivityBar({
           active={pluginBrowserOpen}
           label="Plugin Marketplace"
           onClick={onTogglePluginBrowser}
+        />
+      )}
+
+      {/* Bottom pinned actions */}
+      <div style={{ flex: 1 }} />
+      {onOpenDeploy && (
+        <ActivityBarButton
+          icon={<Upload size={17} />}
+          active={false}
+          label="Deploy"
+          onClick={onOpenDeploy}
+        />
+      )}
+      {onOpenSettings && (
+        <ActivityBarButton
+          icon={<Settings size={17} />}
+          active={false}
+          label="Settings"
+          onClick={onOpenSettings}
         />
       )}
     </div>

@@ -27,8 +27,8 @@ export const PROVIDER_MODELS: Record<string, Array<{ id: string; name: string }>
 const PROVIDER_LABELS: Record<ProviderId, string> = {
   kode:      'Kode',
   copilot:   'Copilot',
-  anthropic: 'Anthropic',
-  openai:    'OpenAI'
+  anthropic: 'Claude',
+  openai:    'Codex'
 }
 
 interface ProviderSettingsProps {
@@ -37,15 +37,19 @@ interface ProviderSettingsProps {
   onSetProviderKey(provider: ProviderId, key: string): void
   onSetProviderModel(provider: ProviderId, model: string): void
   onClose(): void
+  onOpenAccountSettings?(): void
 }
 
-export function ProviderSettings({ settings, onSetActiveProvider, onSetProviderKey, onSetProviderModel, onClose }: ProviderSettingsProps) {
-  const [connecting, setConnecting] = useState<ProviderId | null>(null)
+export function ProviderSettings({
+  settings, onSetActiveProvider, onSetProviderKey, onSetProviderModel: _onSetProviderModel,
+  onClose, onOpenAccountSettings
+}: ProviderSettingsProps) {
+  const [connectingProvider, setConnectingProvider] = useState<ProviderId | null>(null)
+  const [connectTab, setConnectTab] = useState<'account' | 'api'>('account')
   const [tempKey, setTempKey] = useState('')
 
   const active = settings.activeProvider
   const providerConfig = settings.providers[active] ?? { apiKey: '', model: '' }
-  const models = PROVIDER_MODELS[active] ?? []
   const isApiKeyProvider = active === 'anthropic' || active === 'openai'
   const isConnected = !!providerConfig.apiKey?.trim()
 
@@ -65,6 +69,18 @@ export function ProviderSettings({ settings, onSetActiveProvider, onSetProviderK
 
   const providerOrder: ProviderId[] = ['kode', 'copilot', 'anthropic', 'openai']
 
+  const handleSaveKey = () => {
+    if (!tempKey.trim()) return
+    onSetProviderKey(active, tempKey.trim())
+    setConnectingProvider(null)
+    setTempKey('')
+  }
+
+  const handleCancelConnect = () => {
+    setConnectingProvider(null)
+    setTempKey('')
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)', borderBottom: '2px solid var(--border)' }}>
       {/* Header */}
@@ -77,7 +93,7 @@ export function ProviderSettings({ settings, onSetActiveProvider, onSetProviderK
         </button>
       </div>
 
-      {/* Provider selector — all 4 */}
+      {/* Provider selector */}
       <div style={sectionStyle}>
         <span style={labelStyle}>Provider</span>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
@@ -107,29 +123,52 @@ export function ProviderSettings({ settings, onSetActiveProvider, onSetProviderK
         </div>
       </div>
 
-      {/* Auth section — depends on provider */}
-      {(active === 'kode') && (
+      {/* Kode: link to account settings */}
+      {active === 'kode' && (
         <div style={sectionStyle}>
           <span style={labelStyle}>Authentication</span>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-            Uses your Kode subscription. Sign in from <strong>Settings → Account</strong>.
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 8 }}>
+            Uses your Kode subscription.
           </div>
+          <button
+            onClick={onOpenAccountSettings}
+            style={{
+              width: '100%', padding: '8px 0', background: 'var(--bg-secondary)',
+              color: 'var(--text-secondary)', borderRadius: 'var(--radius-md)', fontSize: 12,
+              fontWeight: 500, border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit'
+            }}
+          >
+            Go to Account Settings
+          </button>
         </div>
       )}
 
-      {(active === 'copilot') && (
+      {/* Copilot: link to account settings */}
+      {active === 'copilot' && (
         <div style={sectionStyle}>
           <span style={labelStyle}>Authentication</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 8 }}>
             <Github size={12} />
-            Sign in with GitHub from <strong>Settings → Account</strong>.
+            Sign in with GitHub.
           </div>
+          <button
+            onClick={onOpenAccountSettings}
+            style={{
+              width: '100%', padding: '8px 0', background: 'var(--bg-secondary)',
+              color: 'var(--text-secondary)', borderRadius: 'var(--radius-md)', fontSize: 12,
+              fontWeight: 500, border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit'
+            }}
+          >
+            Go to Account Settings
+          </button>
         </div>
       )}
 
+      {/* Claude / Codex: API key auth with Account | API tabs */}
       {isApiKeyProvider && (
         <div style={sectionStyle}>
-          <label htmlFor="api-key-input" style={labelStyle}>API Key</label>
+          <span style={labelStyle}>Authentication</span>
+
           {isConnected ? (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -141,65 +180,118 @@ export function ProviderSettings({ settings, onSetActiveProvider, onSetProviderK
                 <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>API key connected</span>
               </div>
               <button
-                onClick={() => { onSetProviderKey(active, ''); setConnecting(null) }}
+                onClick={() => { onSetProviderKey(active, ''); setConnectingProvider(null) }}
+                aria-label="Disconnect"
                 style={{ fontSize: 12, color: 'var(--text-muted)', background: 'transparent', padding: '3px 8px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 Disconnect
               </button>
             </div>
-          ) : connecting === active ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-                {active === 'anthropic' ? 'Get your key at console.anthropic.com → API Keys.' : 'Get your key at platform.openai.com → API Keys.'}
-              </p>
-              <input
-                id="api-key-input"
-                type="password"
-                placeholder="sk-..."
-                value={tempKey}
-                autoFocus
-                onChange={e => setTempKey(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && tempKey.trim()) { onSetProviderKey(active, tempKey.trim()); setConnecting(null); setTempKey('') }
-                  if (e.key === 'Escape') { setConnecting(null); setTempKey('') }
-                }}
-                style={{ padding: '8px 12px', borderRadius: 'var(--radius-md)', fontSize: 13, width: '100%', boxSizing: 'border-box', background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
-              />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => { if (tempKey.trim()) { onSetProviderKey(active, tempKey.trim()); setConnecting(null); setTempKey('') } }}
-                  style={{ flex: 1, padding: '7px 0', background: 'var(--accent)', color: '#fff', borderRadius: 'var(--radius-sm)', fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-                >Save Key</button>
-                <button
-                  onClick={() => { setConnecting(null); setTempKey('') }}
-                  style={{ padding: '7px 16px', background: 'var(--bg-sidebar)', color: 'var(--text-secondary)', borderRadius: 'var(--radius-sm)', fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-                >Cancel</button>
+          ) : connectingProvider === active ? (
+            <div>
+              {/* Tab headers */}
+              <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 10 }}>
+                {(['account', 'api'] as const).map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setConnectTab(tab)}
+                    style={{
+                      padding: '5px 12px', fontSize: 11, fontWeight: 600,
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      fontFamily: 'inherit', textTransform: 'capitalize',
+                      color: connectTab === tab ? 'var(--accent)' : 'var(--text-muted)',
+                      borderBottom: `2px solid ${connectTab === tab ? 'var(--accent)' : 'transparent'}`,
+                      marginBottom: -1
+                    }}
+                  >
+                    {tab === 'account' ? 'Account' : 'API'}
+                  </button>
+                ))}
               </div>
+
+              {connectTab === 'account' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                    Sign in with your {PROVIDER_LABELS[active]} account to use your Pro or Max subscription quota.
+                  </p>
+                  <button
+                    style={{
+                      width: '100%', padding: '10px 0', background: 'var(--kode-btn)',
+                      color: 'var(--kode-btn-fg)', borderRadius: 'var(--radius-md)',
+                      fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer', fontFamily: 'inherit'
+                    }}
+                  >
+                    Sign in with {PROVIDER_LABELS[active]}
+                  </button>
+                  <button
+                    onClick={handleCancelConnect}
+                    style={{
+                      width: '100%', padding: '7px 0', background: 'var(--bg-sidebar)',
+                      color: 'var(--text-secondary)', borderRadius: 'var(--radius-sm)',
+                      fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                    {active === 'anthropic'
+                      ? 'Get your key at console.anthropic.com → API Keys.'
+                      : 'Get your key at platform.openai.com → API Keys.'}
+                  </p>
+                  <label htmlFor="api-key-input" style={{ ...labelStyle, marginBottom: 0 }}>API Key</label>
+                  <input
+                    id="api-key-input"
+                    type="password"
+                    placeholder="sk-..."
+                    value={tempKey}
+                    autoFocus
+                    onChange={e => setTempKey(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && tempKey.trim()) handleSaveKey()
+                      if (e.key === 'Escape') handleCancelConnect()
+                    }}
+                    style={{ ...inputStyle, padding: '8px 12px', borderRadius: 'var(--radius-md)', fontSize: 13 }}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={handleSaveKey}
+                      style={{
+                        flex: 1, padding: '7px 0', background: 'var(--accent)', color: '#fff',
+                        borderRadius: 'var(--radius-sm)', fontSize: 13, border: 'none',
+                        cursor: 'pointer', fontFamily: 'inherit'
+                      }}
+                    >
+                      Save Key
+                    </button>
+                    <button
+                      onClick={handleCancelConnect}
+                      style={{
+                        padding: '7px 16px', background: 'var(--bg-sidebar)',
+                        color: 'var(--text-secondary)', borderRadius: 'var(--radius-sm)',
+                        fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: 'inherit'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <button
-              style={{ width: '100%', padding: '10px 0', background: 'var(--kode-btn)', color: 'var(--kode-btn-fg)', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-              onClick={() => setConnecting(active)}
+              style={{
+                width: '100%', padding: '10px 0', background: 'var(--kode-btn)',
+                color: 'var(--kode-btn-fg)', borderRadius: 'var(--radius-md)',
+                fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer', fontFamily: 'inherit'
+              }}
+              onClick={() => { setConnectingProvider(active); setConnectTab('account') }}
             >
               Connect Account
             </button>
           )}
-        </div>
-      )}
-
-      {/* Model selector */}
-      {models.length > 0 && (
-        <div style={{ ...sectionStyle, borderBottom: 'none' }}>
-          <label style={labelStyle}>Model</label>
-          <select
-            value={providerConfig.model || models[0]?.id}
-            onChange={e => onSetProviderModel(active, e.target.value)}
-            style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}
-          >
-            {models.map(m => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
         </div>
       )}
     </div>

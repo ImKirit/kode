@@ -10,6 +10,7 @@ function makeProps(overrides = {}) {
     bottomPanelVisible: true,
     onToggleSidebar: vi.fn(),
     onShowThreads: vi.fn(),
+    onShowGit: vi.fn(),
     onToggleAiPanel: vi.fn(),
     onToggleBottomPanel: vi.fn(),
     ...overrides
@@ -42,6 +43,21 @@ describe('ActivityBar', () => {
     expect(screen.getByRole('button', { name: /toggle terminal/i })).toBeInTheDocument()
   })
 
+  it('renders Toggle Git button', () => {
+    render(<ActivityBar {...makeProps()} />)
+    expect(screen.getByRole('button', { name: /toggle git/i })).toBeInTheDocument()
+  })
+
+  it('renders Settings button when onOpenSettings provided', () => {
+    render(<ActivityBar {...makeProps({ onOpenSettings: vi.fn() })} />)
+    expect(screen.getByRole('button', { name: /^settings$/i })).toBeInTheDocument()
+  })
+
+  it('renders Deploy button when onOpenDeploy provided', () => {
+    render(<ActivityBar {...makeProps({ onOpenDeploy: vi.fn() })} />)
+    expect(screen.getByRole('button', { name: /deploy/i })).toBeInTheDocument()
+  })
+
   it('calls onToggleSidebar when Explorer button is clicked', () => {
     const props = makeProps()
     render(<ActivityBar {...props} />)
@@ -68,6 +84,13 @@ describe('ActivityBar', () => {
     render(<ActivityBar {...props} />)
     fireEvent.click(screen.getByRole('button', { name: /toggle terminal/i }))
     expect(props.onToggleBottomPanel).toHaveBeenCalledTimes(1)
+  })
+
+  it('calls onShowGit when Git button is clicked', () => {
+    const props = makeProps()
+    render(<ActivityBar {...props} />)
+    fireEvent.click(screen.getByRole('button', { name: /toggle git/i }))
+    expect(props.onShowGit).toHaveBeenCalledTimes(1)
   })
 
   it('sets aria-pressed=true on Explorer when sidebar visible and view is files', () => {

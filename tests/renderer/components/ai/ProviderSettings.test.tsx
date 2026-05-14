@@ -5,6 +5,7 @@ const mockSetActiveProvider = vi.fn().mockResolvedValue(undefined)
 const mockSetProviderKey = vi.fn().mockResolvedValue(undefined)
 const mockSetProviderModel = vi.fn().mockResolvedValue(undefined)
 const mockOnClose = vi.fn()
+const mockOnOpenAccountSettings = vi.fn()
 
 const DEFAULT_SETTINGS = {
   activeProvider: 'anthropic' as const,
@@ -23,176 +24,116 @@ beforeEach(() => {
   mockSetProviderKey.mockClear()
   mockSetProviderModel.mockClear()
   mockOnClose.mockClear()
+  mockOnOpenAccountSettings.mockClear()
 })
 
+function renderPS(settingsOverrides = {}, propOverrides = {}) {
+  const settings = { ...DEFAULT_SETTINGS, ...settingsOverrides }
+  return render(
+    <ProviderSettings
+      settings={settings}
+      onSetActiveProvider={mockSetActiveProvider}
+      onSetProviderKey={mockSetProviderKey}
+      onSetProviderModel={mockSetProviderModel}
+      onClose={mockOnClose}
+      onOpenAccountSettings={mockOnOpenAccountSettings}
+      {...propOverrides}
+    />
+  )
+}
+
 describe('ProviderSettings', () => {
-  it('renders the provider selector with Anthropic and OpenAI options', () => {
-    render(
-      <ProviderSettings
-        settings={DEFAULT_SETTINGS}
-        onSetActiveProvider={mockSetActiveProvider}
-        onSetProviderKey={mockSetProviderKey}
-        onSetProviderModel={mockSetProviderModel}
-        onClose={mockOnClose}
-      />
-    )
-    expect(screen.getByText('Anthropic')).toBeInTheDocument()
-    expect(screen.getByText('OpenAI')).toBeInTheDocument()
+  it('renders provider selector with Claude and Codex labels', () => {
+    renderPS()
+    expect(screen.getByText('Claude')).toBeTruthy()
+    expect(screen.getByText('Codex')).toBeTruthy()
+  })
+
+  it('shows Kode and Copilot providers', () => {
+    renderPS()
+    expect(screen.getByText('Kode')).toBeTruthy()
+    expect(screen.getByText('Copilot')).toBeTruthy()
   })
 
   it('shows the current active provider as selected', () => {
-    render(
-      <ProviderSettings
-        settings={DEFAULT_SETTINGS}
-        onSetActiveProvider={mockSetActiveProvider}
-        onSetProviderKey={mockSetProviderKey}
-        onSetProviderModel={mockSetProviderModel}
-        onClose={mockOnClose}
-      />
-    )
-    const anthropicBtn = screen.getByRole('button', { name: /anthropic/i })
-    expect(anthropicBtn).toHaveAttribute('aria-pressed', 'true')
-    const openaiBtn = screen.getByRole('button', { name: /openai/i })
-    expect(openaiBtn).toHaveAttribute('aria-pressed', 'false')
+    renderPS()
+    const claudeBtn = screen.getByRole('button', { name: /^claude$/i })
+    expect(claudeBtn).toHaveAttribute('aria-pressed', 'true')
+    const codexBtn = screen.getByRole('button', { name: /^codex$/i })
+    expect(codexBtn).toHaveAttribute('aria-pressed', 'false')
   })
 
   it('calls onSetActiveProvider when switching provider', () => {
-    render(
-      <ProviderSettings
-        settings={DEFAULT_SETTINGS}
-        onSetActiveProvider={mockSetActiveProvider}
-        onSetProviderKey={mockSetProviderKey}
-        onSetProviderModel={mockSetProviderModel}
-        onClose={mockOnClose}
-      />
-    )
-    fireEvent.click(screen.getByRole('button', { name: /openai/i }))
+    renderPS()
+    fireEvent.click(screen.getByRole('button', { name: /^codex$/i }))
     expect(mockSetActiveProvider).toHaveBeenCalledWith('openai')
   })
 
   it('shows connected state when provider has an API key', () => {
-    render(
-      <ProviderSettings
-        settings={DEFAULT_SETTINGS}
-        onSetActiveProvider={mockSetActiveProvider}
-        onSetProviderKey={mockSetProviderKey}
-        onSetProviderModel={mockSetProviderModel}
-        onClose={mockOnClose}
-      />
-    )
-    expect(screen.getByText('API key connected')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /disconnect/i })).toBeInTheDocument()
+    renderPS()
+    expect(screen.getByText('API key connected')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /disconnect/i })).toBeTruthy()
   })
 
   it('calls onSetProviderKey with empty string when Disconnect is clicked', () => {
-    render(
-      <ProviderSettings
-        settings={DEFAULT_SETTINGS}
-        onSetActiveProvider={mockSetActiveProvider}
-        onSetProviderKey={mockSetProviderKey}
-        onSetProviderModel={mockSetProviderModel}
-        onClose={mockOnClose}
-      />
-    )
+    renderPS()
     fireEvent.click(screen.getByRole('button', { name: /disconnect/i }))
     expect(mockSetProviderKey).toHaveBeenCalledWith('anthropic', '')
   })
 
   it('shows Connect Account button when provider has no API key', () => {
-    const disconnectedSettings = {
-      ...DEFAULT_SETTINGS,
-      activeProvider: 'openai' as const
-    }
-    render(
-      <ProviderSettings
-        settings={disconnectedSettings}
-        onSetActiveProvider={mockSetActiveProvider}
-        onSetProviderKey={mockSetProviderKey}
-        onSetProviderModel={mockSetProviderModel}
-        onClose={mockOnClose}
-      />
-    )
-    expect(screen.getByRole('button', { name: /connect account/i })).toBeInTheDocument()
+    renderPS({ activeProvider: 'openai' as const })
+    expect(screen.getByRole('button', { name: /connect account/i })).toBeTruthy()
   })
 
-  it('shows key input form when Connect Account is clicked', () => {
-    const disconnectedSettings = {
-      ...DEFAULT_SETTINGS,
-      activeProvider: 'openai' as const
-    }
-    render(
-      <ProviderSettings
-        settings={disconnectedSettings}
-        onSetActiveProvider={mockSetActiveProvider}
-        onSetProviderKey={mockSetProviderKey}
-        onSetProviderModel={mockSetProviderModel}
-        onClose={mockOnClose}
-      />
-    )
+  it('shows Account and API tabs when Connect Account is clicked', () => {
+    renderPS({ activeProvider: 'openai' as const })
     fireEvent.click(screen.getByRole('button', { name: /connect account/i }))
-    expect(screen.getByLabelText('API Key')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^account$/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^api$/i })).toBeTruthy()
+  })
+
+  it('shows API key input when API tab is clicked', () => {
+    renderPS({ activeProvider: 'openai' as const })
+    fireEvent.click(screen.getByRole('button', { name: /connect account/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^api$/i }))
+    expect(screen.getByLabelText('API Key')).toBeTruthy()
   })
 
   it('calls onSetProviderKey when Save Key is clicked with a value', () => {
-    const disconnectedSettings = {
-      ...DEFAULT_SETTINGS,
-      activeProvider: 'openai' as const
-    }
-    render(
-      <ProviderSettings
-        settings={disconnectedSettings}
-        onSetActiveProvider={mockSetActiveProvider}
-        onSetProviderKey={mockSetProviderKey}
-        onSetProviderModel={mockSetProviderModel}
-        onClose={mockOnClose}
-      />
-    )
+    renderPS({ activeProvider: 'openai' as const })
     fireEvent.click(screen.getByRole('button', { name: /connect account/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^api$/i }))
     const input = screen.getByLabelText('API Key')
     fireEvent.change(input, { target: { value: 'sk-new-key' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(mockSetProviderKey).toHaveBeenCalledWith('openai', 'sk-new-key')
   })
 
-  it('shows model selector for active provider', () => {
-    render(
-      <ProviderSettings
-        settings={DEFAULT_SETTINGS}
-        onSetActiveProvider={mockSetActiveProvider}
-        onSetProviderKey={mockSetProviderKey}
-        onSetProviderModel={mockSetProviderModel}
-        onClose={mockOnClose}
-      />
-    )
-    expect(screen.getByRole('combobox')).toBeInTheDocument()
-  })
-
-  it('calls onSetProviderModel when model selector changes', () => {
-    render(
-      <ProviderSettings
-        settings={DEFAULT_SETTINGS}
-        onSetActiveProvider={mockSetActiveProvider}
-        onSetProviderKey={mockSetProviderKey}
-        onSetProviderModel={mockSetProviderModel}
-        onClose={mockOnClose}
-      />
-    )
-    const select = screen.getByRole('combobox')
-    fireEvent.change(select, { target: { value: 'claude-opus-4-7' } })
-    expect(mockSetProviderModel).toHaveBeenCalledWith('anthropic', 'claude-opus-4-7')
-  })
-
   it('calls onClose when close button is clicked', () => {
-    render(
-      <ProviderSettings
-        settings={DEFAULT_SETTINGS}
-        onSetActiveProvider={mockSetActiveProvider}
-        onSetProviderKey={mockSetProviderKey}
-        onSetProviderModel={mockSetProviderModel}
-        onClose={mockOnClose}
-      />
-    )
+    renderPS()
     fireEvent.click(screen.getByRole('button', { name: /close/i }))
     expect(mockOnClose).toHaveBeenCalled()
+  })
+
+  it('shows Go to Account Settings button for Kode provider', () => {
+    renderPS({ activeProvider: 'kode' as const })
+    expect(screen.getByRole('button', { name: /go to account settings/i })).toBeTruthy()
+  })
+
+  it('calls onOpenAccountSettings when Go to Account Settings is clicked for Kode', () => {
+    renderPS({ activeProvider: 'kode' as const })
+    fireEvent.click(screen.getByRole('button', { name: /go to account settings/i }))
+    expect(mockOnOpenAccountSettings).toHaveBeenCalled()
+  })
+
+  it('shows Go to Account Settings button for Copilot provider', () => {
+    renderPS({ activeProvider: 'copilot' as const })
+    expect(screen.getByRole('button', { name: /go to account settings/i })).toBeTruthy()
+  })
+
+  it('does not show model selector', () => {
+    renderPS()
+    expect(screen.queryByRole('combobox')).not.toBeTruthy()
   })
 })
