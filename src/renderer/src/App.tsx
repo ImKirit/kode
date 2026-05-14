@@ -1,7 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useProject } from './hooks/useProject'
 import { DEFAULT_EDITOR_CONFIG } from './hooks/useSettings'
-import { usePanelLayout } from './hooks/usePanelLayout'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useAutoFollow } from './hooks/useAutoFollow'
 import { useTheme } from './hooks/useTheme'
@@ -9,6 +8,7 @@ import { useSettings } from './hooks/useSettings'
 import { useClaudeContext } from './hooks/useClaudeContext'
 import { useChatHistory } from './hooks/useChatHistory'
 import { GoldenLayoutWrapper } from './components/layout/GoldenLayoutWrapper'
+import type { GoldenLayoutHandle } from './components/layout/GoldenLayoutWrapper'
 import { ActivityBar } from './components/layout/ActivityBar'
 import { MenuBar } from './components/layout/MenuBar'
 import { FileTree } from './components/filetree/FileTree'
@@ -23,6 +23,9 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [pluginBrowserOpen, setPluginBrowserOpen] = useState(false)
   const [sidebarView, setSidebarView] = useState<'files' | 'threads'>('files')
+  const [panelVis, setPanelVis] = useState({ explorer: true, ai: true, bottomPanel: true })
+
+  const glRef = useRef<GoldenLayoutHandle>(null)
 
   const themeState = useTheme()
   const { settings, addMcpServer, removeMcpServer, setMcpPermission, setKeybinding, setEditorConfig } = useSettings()
@@ -39,8 +42,6 @@ export function App() {
     saveFile
   } = useProject()
 
-  const layout = usePanelLayout()
-
   const autoFollow = useAutoFollow({
     rootPath: project.rootPath,
     openFiles,
@@ -50,52 +51,69 @@ export function App() {
   })
 
   const { systemPrompt, hasContext } = useClaudeContext(project.rootPath ?? null)
-
   const chatHistory = useChatHistory()
 
+  const toggleExplorer = useCallback(() => {
+    const visible = glRef.current?.togglePanel('explorer') ?? true
+    setPanelVis(v => ({ ...v, explorer: visible }))
+  }, [])
+
+  const toggleAi = useCallback(() => {
+    const visible = glRef.current?.togglePanel('ai') ?? true
+    setPanelVis(v => ({ ...v, ai: visible }))
+  }, [])
+
+  const toggleBottomPanel = useCallback(() => {
+    const visible = glRef.current?.togglePanel('bottomPanel') ?? true
+    setPanelVis(v => ({ ...v, bottomPanel: visible }))
+  }, [])
+
+  const handleToggleSidebar = useCallback(() => {
+    if (sidebarView !== 'files') {
+      setSidebarView('files')
+      if (!panelVis.explorer) {
+        const visible = glRef.current?.togglePanel('explorer') ?? true
+        setPanelVis(v => ({ ...v, explorer: visible }))
+      }
+    } else {
+      toggleExplorer()
+    }
+  }, [sidebarView, panelVis.explorer, toggleExplorer])
+
+  const handleShowThreads = useCallback(() => {
+    if (sidebarView !== 'threads') {
+      setSidebarView('threads')
+      if (!panelVis.explorer) {
+        const visible = glRef.current?.togglePanel('explorer') ?? true
+        setPanelVis(v => ({ ...v, explorer: visible }))
+      }
+    } else {
+      toggleExplorer()
+    }
+  }, [sidebarView, panelVis.explorer, toggleExplorer])
+
+  const activeProvider = settings?.activeProvider ?? 'anthropic'
+  const activeModel = settings?.providers[activeProvider]?.model ?? ''
+
+  const handleNewThread = useCallback(async () => {
+    const session = await chatHistory.createSession('New Thread', activeProvider, activeModel)
+    chatHistory.setCurrentSessionId(session.id)
+  }, [chatHistory, activeProvider, activeModel])
+
   useKeyboardShortcuts({
-    onToggleSidebar: layout.toggleSidebar,
-    onToggleBottomPanel: layout.toggleBottomPanel,
-    onToggleAiPanel: layout.toggleAiPanel,
+    onToggleSidebar: handleToggleSidebar,
+    onToggleBottomPanel: toggleBottomPanel,
+    onToggleAiPanel: toggleAi,
     onSaveFile: () => activeFilePath && saveFile(activeFilePath),
     onOpenFolder: openFolder,
     onOpenSettings: () => setSettingsOpen(true),
     keybindings: settings?.keybindings
   })
 
-  const handleToggleSidebar = useCallback(() => {
-    if (sidebarView !== 'files') {
-      setSidebarView('files')
-      if (!layout.sidebarVisible) layout.toggleSidebar()
-    } else {
-      layout.toggleSidebar()
-    }
-  }, [sidebarView, layout])
-
-  const handleShowThreads = useCallback(() => {
-    if (sidebarView !== 'threads') {
-      setSidebarView('threads')
-      if (!layout.sidebarVisible) layout.toggleSidebar()
-    } else {
-      layout.toggleSidebar()
-    }
-  }, [sidebarView, layout])
-
-  const activeProvider = settings?.activeProvider ?? 'anthropic'
-  const activeModel = settings?.providers[activeProvider]?.model ?? ''
-
-  const handleNewThread = useCallback(async () => {
-    const session = await chatHistory.createSession(
-      'New Thread',
-      activeProvider,
-      activeModel
-    )
-    chatHistory.setCurrentSessionId(session.id)
-  }, [chatHistory, activeProvider, activeModel])
-
   return (
     <>
       <GoldenLayoutWrapper
+        ref={glRef}
         menuBar={
           <MenuBar
             projectName={project.name}
@@ -106,15 +124,15 @@ export function App() {
         }
         activityBar={
           <ActivityBar
-            sidebarVisible={layout.sidebarVisible}
+            sidebarVisible={panelVis.explorer}
             sidebarView={sidebarView}
-            aiPanelVisible={layout.aiPanelVisible}
-            bottomPanelVisible={layout.bottomPanelVisible}
+            aiPanelVisible={panelVis.ai}
+            bottomPanelVisible={panelVis.bottomPanel}
             pluginBrowserOpen={pluginBrowserOpen}
             onToggleSidebar={handleToggleSidebar}
             onShowThreads={handleShowThreads}
-            onToggleAiPanel={layout.toggleAiPanel}
-            onToggleBottomPanel={layout.toggleBottomPanel}
+            onToggleAiPanel={toggleAi}
+            onToggleBottomPanel={toggleBottomPanel}
             onTogglePluginBrowser={() => setPluginBrowserOpen(v => !v)}
           />
         }
