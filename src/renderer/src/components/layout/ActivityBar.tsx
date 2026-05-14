@@ -1,19 +1,18 @@
-import { Files, Terminal, MessageSquare, Package, Clock, Settings, GitBranch, Upload } from 'lucide-react'
+import { Files, Terminal, MessageSquare, Settings, Upload, Globe, LayoutGrid } from 'lucide-react'
 
 interface ActivityBarProps {
   sidebarVisible: boolean
-  sidebarView: 'files' | 'threads' | 'git'
+  sidebarView: 'files'
   aiPanelVisible: boolean
   bottomPanelVisible: boolean
-  pluginBrowserOpen?: boolean
+  localHostActive?: boolean
   onToggleSidebar(): void
-  onShowThreads(): void
-  onShowGit(): void
   onToggleAiPanel(): void
   onToggleBottomPanel(): void
   onTogglePluginBrowser?(): void
   onOpenSettings?(): void
   onOpenDeploy?(): void
+  onToggleLocalHost?(): void
 }
 
 interface BtnProps {
@@ -65,18 +64,16 @@ function ActivityBarButton({ icon, active, label, onClick }: BtnProps) {
 
 export function ActivityBar({
   sidebarVisible,
-  sidebarView,
   aiPanelVisible,
   bottomPanelVisible,
-  pluginBrowserOpen = false,
+  localHostActive = false,
   onToggleSidebar,
-  onShowThreads,
-  onShowGit,
   onToggleAiPanel,
   onToggleBottomPanel,
   onTogglePluginBrowser,
   onOpenSettings,
-  onOpenDeploy
+  onOpenDeploy,
+  onToggleLocalHost
 }: ActivityBarProps) {
   return (
     <div
@@ -96,21 +93,9 @@ export function ActivityBar({
     >
       <ActivityBarButton
         icon={<Files size={17} />}
-        active={sidebarVisible && sidebarView === 'files'}
+        active={sidebarVisible && true}
         label="Toggle Explorer"
         onClick={onToggleSidebar}
-      />
-      <ActivityBarButton
-        icon={<Clock size={17} />}
-        active={sidebarVisible && sidebarView === 'threads'}
-        label="Toggle Threads"
-        onClick={onShowThreads}
-      />
-      <ActivityBarButton
-        icon={<GitBranch size={17} />}
-        active={sidebarVisible && sidebarView === 'git'}
-        label="Toggle Git"
-        onClick={onShowGit}
       />
       <ActivityBarButton
         icon={<MessageSquare size={17} />}
@@ -126,10 +111,18 @@ export function ActivityBar({
       />
       {onTogglePluginBrowser && (
         <ActivityBarButton
-          icon={<Package size={17} />}
-          active={pluginBrowserOpen}
+          icon={<LayoutGrid size={17} />}
+          active={false}
           label="Plugin Marketplace"
           onClick={onTogglePluginBrowser}
+        />
+      )}
+      {onToggleLocalHost && (
+        <ActivityBarButton
+          icon={<Globe size={17} />}
+          active={localHostActive}
+          label="Local Host"
+          onClick={onToggleLocalHost}
         />
       )}
 

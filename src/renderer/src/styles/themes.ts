@@ -13,6 +13,7 @@ export interface ThemeVars {
   '--text-secondary': string
   '--text-muted': string
   '--accent': string
+  '--accent-fg': string
   '--kode-btn': string
   '--kode-btn-fg': string
   '--kode-btn-hover': string
@@ -23,6 +24,11 @@ export interface ThemeVars {
   '--kode-scrollbar': string
   '--kode-selection': string
   '--monaco-theme': string
+}
+
+export function perceivedLuminance(hex: string): number {
+  const [r, g, b] = hexToRgb(hex)
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255
 }
 
 export const lightTheme: ThemeVars = {
@@ -38,6 +44,7 @@ export const lightTheme: ThemeVars = {
   '--text-secondary':  '#555555',
   '--text-muted':      '#999999',
   '--accent':          '#0066b8',
+  '--accent-fg':       '#ffffff',
   '--kode-btn':        '#1a1a1a',
   '--kode-btn-fg':     '#ffffff',
   '--kode-btn-hover':  '#333333',
@@ -63,6 +70,7 @@ export const darkTheme: ThemeVars = {
   '--text-secondary':  '#a0a0a0',
   '--text-muted':      '#606060',
   '--accent':          '#0e9de8',
+  '--accent-fg':       '#ffffff',
   '--kode-btn':        '#e8e8e8',
   '--kode-btn-fg':     '#1a1a1a',
   '--kode-btn-hover':  '#ffffff',
@@ -91,11 +99,6 @@ function adjustHex(hex: string, delta: number): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
-function perceivedLuminance(hex: string): number {
-  const [r, g, b] = hexToRgb(hex)
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255
-}
-
 export function buildCustomTheme(primary: string, accent: string): ThemeVars {
   const lum = perceivedLuminance(primary)
   const isDark = lum < 0.5
@@ -117,6 +120,7 @@ export function buildCustomTheme(primary: string, accent: string): ThemeVars {
     '--text-secondary':  isDark ? '#a0a0a0' : '#555555',
     '--text-muted':      isDark ? '#606060' : '#999999',
     '--accent':          accent,
+    '--accent-fg':       perceivedLuminance(accent) > 0.5 ? '#1a1a1a' : '#ffffff',
     '--kode-btn':        isDark ? '#e8e8e8' : '#1a1a1a',
     '--kode-btn-fg':     isDark ? '#1a1a1a' : '#ffffff',
     '--kode-btn-hover':  isDark ? '#ffffff' : '#333333',

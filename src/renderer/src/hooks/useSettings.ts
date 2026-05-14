@@ -32,6 +32,7 @@ export interface AppSettings {
   mcpPermission: 'ask' | 'full'
   keybindings?: Record<string, string>
   editor?: EditorConfig
+  localHostPort?: number
 }
 
 export interface UseSettingsResult {

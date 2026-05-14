@@ -55,18 +55,13 @@ describe('McpSettings', () => {
     expect(onRemoveServer).toHaveBeenCalledWith('srv1')
   })
 
-  it('expands add form when Add Server clicked', () => {
+  it('shows MCP integrations link text', () => {
     render(<McpSettings {...baseProps} />)
-    fireEvent.click(screen.getByText('+ Add Server'))
-    expect(screen.getByPlaceholderText('Server name')).toBeTruthy()
+    expect(screen.getByText(/MCP integrations directory/i)).toBeTruthy()
   })
 
-  it('calls onAddServer with name when form saved', () => {
-    const onAddServer = vi.fn()
-    render(<McpSettings {...baseProps} onAddServer={onAddServer} />)
-    fireEvent.click(screen.getByText('+ Add Server'))
-    fireEvent.change(screen.getByPlaceholderText('Server name'), { target: { value: 'New MCP' } })
-    fireEvent.click(screen.getByText('Save'))
-    expect(onAddServer).toHaveBeenCalledWith(expect.objectContaining({ name: 'New MCP' }))
+  it('shows ask AI instruction text', () => {
+    render(<McpSettings {...baseProps} />)
+    expect(screen.getByText(/ask the AI/i)).toBeTruthy()
   })
 })

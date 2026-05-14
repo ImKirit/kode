@@ -14,22 +14,20 @@ import { MenuBar } from './components/layout/MenuBar'
 import { FileTree } from './components/filetree/FileTree'
 import { EditorArea } from './components/editor/EditorArea'
 import { AIChatPanel } from './components/ai/AIChatPanel'
-import { ThreadsPanel } from './components/ai/ThreadsPanel'
 import { BottomPanel } from './components/layout/BottomPanel'
 import { SettingsPanel } from './components/settings/SettingsPanel'
 import { PluginBrowser } from './components/plugins/PluginBrowser'
-import { ChangesView } from './components/git/ChangesView'
 
-type SettingsTab = 'appearance' | 'editor' | 'mcp' | 'keybindings' | 'github' | 'deploy' | 'account'
+type SettingsTab = 'appearance' | 'editor' | 'mcp' | 'keybindings' | 'github' | 'deploy' | 'account' | 'fun'
 
 export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('appearance')
   const [pluginBrowserOpen, setPluginBrowserOpen] = useState(false)
-  const [sidebarView, setSidebarView] = useState<'files' | 'threads' | 'git'>('files')
+  const [localHostActive, setLocalHostActive] = useState(false)
 
   const themeState = useTheme()
-  const { settings, addMcpServer, removeMcpServer, setMcpPermission, setKeybinding, setEditorConfig } = useSettings()
+  const { settings, updateSettings, addMcpServer, removeMcpServer, setMcpPermission, setKeybinding, setEditorConfig } = useSettings()
 
   const {
     project,
@@ -72,42 +70,22 @@ export function App() {
     setSettingsOpen(true)
   }, [])
 
-  const handleToggleSidebar = useCallback(() => {
-    if (sidebarView !== 'files') {
-      setSidebarView('files')
-      if (!layout.sidebarVisible) layout.toggleSidebar()
+  const handleToggleLocalHost = useCallback(async () => {
+    const port = settings?.localHostPort ?? 8000
+    if (!localHostActive) {
+      const result = await window.kode.liveServer.start(project.rootPath ?? '', port)
+      if (result.ok) setLocalHostActive(true)
     } else {
-      layout.toggleSidebar()
+      await window.kode.liveServer.stop()
+      setLocalHostActive(false)
     }
-  }, [sidebarView, layout])
-
-  const handleShowThreads = useCallback(() => {
-    if (sidebarView !== 'threads') {
-      setSidebarView('threads')
-      if (!layout.sidebarVisible) layout.toggleSidebar()
-    } else {
-      layout.toggleSidebar()
-    }
-  }, [sidebarView, layout])
-
-  const handleShowGit = useCallback(() => {
-    if (sidebarView !== 'git') {
-      setSidebarView('git')
-      if (!layout.sidebarVisible) layout.toggleSidebar()
-    } else {
-      layout.toggleSidebar()
-    }
-  }, [sidebarView, layout])
+  }, [localHostActive, project.rootPath, settings?.localHostPort])
 
   const activeProvider = settings?.activeProvider ?? 'anthropic'
   const activeModel = settings?.providers[activeProvider]?.model ?? ''
 
   const handleNewThread = useCallback(async () => {
-    const session = await chatHistory.createSession(
-      'New Thread',
-      activeProvider,
-      activeModel
-    )
+    const session = await chatHistory.createSession('New Thread', activeProvider, activeModel)
     chatHistory.setCurrentSessionId(session.id)
   }, [chatHistory, activeProvider, activeModel])
 
@@ -126,44 +104,25 @@ export function App() {
         activityBar={
           <ActivityBar
             sidebarVisible={layout.sidebarVisible}
-            sidebarView={sidebarView}
+            sidebarView="files"
             aiPanelVisible={layout.aiPanelVisible}
             bottomPanelVisible={layout.bottomPanelVisible}
-            pluginBrowserOpen={pluginBrowserOpen}
-            onToggleSidebar={handleToggleSidebar}
-            onShowThreads={handleShowThreads}
-            onShowGit={handleShowGit}
+            localHostActive={localHostActive}
+            onToggleSidebar={layout.toggleSidebar}
             onToggleAiPanel={layout.toggleAiPanel}
             onToggleBottomPanel={layout.toggleBottomPanel}
             onTogglePluginBrowser={() => setPluginBrowserOpen(v => !v)}
+            onToggleLocalHost={handleToggleLocalHost}
             onOpenSettings={() => openSettings()}
             onOpenDeploy={() => openSettings('deploy')}
           />
         }
         sidebar={
-          sidebarView === 'threads' ? (
-            <ThreadsPanel
-              sessions={chatHistory.sessions}
-              currentSessionId={chatHistory.currentSessionId}
-              searchResults={chatHistory.searchResults}
-              searchQuery={chatHistory.searchQuery}
-              onSelect={chatHistory.setCurrentSessionId}
-              onNew={handleNewThread}
-              onRename={chatHistory.renameSession}
-              onArchive={chatHistory.archiveSession}
-              onDelete={chatHistory.deleteSession}
-              onSearch={chatHistory.search}
-              onClearSearch={chatHistory.clearSearch}
-            />
-          ) : sidebarView === 'git' ? (
-            <ChangesView rootPath={project.rootPath} />
-          ) : (
-            <FileTree
-              rootPath={project.rootPath}
-              activeFilePath={activeFilePath}
-              onOpenFile={openFile}
-            />
-          )
+          <FileTree
+            rootPath={project.rootPath}
+            activeFilePath={activeFilePath}
+            onOpenFile={openFile}
+          />
         }
         editor={
           <EditorArea
@@ -229,6 +188,8 @@ export function App() {
         editorConfig={settings?.editor ?? DEFAULT_EDITOR_CONFIG}
         onSetEditorConfig={setEditorConfig}
         currentFolder={project.rootPath}
+        settings={settings}
+        onUpdateSettings={updateSettings}
       />
 
       {pluginBrowserOpen && (

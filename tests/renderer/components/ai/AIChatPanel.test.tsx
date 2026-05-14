@@ -122,6 +122,16 @@ describe('AIChatPanel', () => {
     expect(screen.getByRole('combobox', { name: /model/i })).toBeInTheDocument()
   })
 
+  it('shows Effort pill button', () => {
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
+    expect(screen.getByRole('button', { name: /effort/i })).toBeInTheDocument()
+  })
+
+  it('shows Permissions pill button', () => {
+    render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
+    expect(screen.getByRole('button', { name: /permissions/i })).toBeInTheDocument()
+  })
+
   it('renders the message input textarea', () => {
     render(<AIChatPanel autoFollowEnabled={false} onToggleAutoFollow={mockOnToggleAutoFollow} />)
     expect(screen.getByPlaceholderText('Message...')).toBeInTheDocument()

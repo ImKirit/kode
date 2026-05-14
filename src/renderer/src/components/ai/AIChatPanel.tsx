@@ -8,8 +8,21 @@ import { QueueDisplay } from './QueueDisplay'
 import { PermissionDialog } from './PermissionDialog'
 import type { ChatSession } from '../../types/electron'
 
-type EffortLevel = 'low' | 'medium' | 'high'
-type PermLevel = 'read' | 'write' | 'full'
+type EffortLevel = 'normal' | 'think' | 'think-harder' | 'think-hardest'
+type PermLevel = 'ask' | 'smart' | 'full'
+
+const EFFORT_LEVELS: Array<{ value: EffortLevel; label: string; bars: number }> = [
+  { value: 'normal',        label: 'Normal',        bars: 1 },
+  { value: 'think',         label: 'Think',         bars: 2 },
+  { value: 'think-harder',  label: 'Think Harder',  bars: 3 },
+  { value: 'think-hardest', label: 'Think Hardest', bars: 4 }
+]
+
+const PERM_LEVELS: Array<{ value: PermLevel; label: string; desc: string }> = [
+  { value: 'ask',   label: 'Ask',   desc: 'Confirm every tool call' },
+  { value: 'smart', label: 'Smart', desc: 'Auto-approve reads, ask for writes' },
+  { value: 'full',  label: 'Full',  desc: 'Approve all tools automatically' }
+]
 
 interface AIChatPanelProps {
   autoFollowEnabled: boolean
@@ -100,8 +113,10 @@ export function AIChatPanel({
     }
   }, [handleSend])
 
-  const [effort, setEffort] = useState<EffortLevel>('medium')
-  const [perms, setPerms] = useState<PermLevel>('write')
+  const [effort, setEffort] = useState<EffortLevel>('normal')
+  const [perms, setPerms] = useState<PermLevel>('smart')
+  const [showEffortMenu, setShowEffortMenu] = useState(false)
+  const [showPermsMenu, setShowPermsMenu] = useState(false)
   const [weekTokens, setWeekTokens] = useState<number | null>(null)
   const [showScheduler, setShowScheduler] = useState(false)
   const [scheduleTime, setScheduleTime] = useState('')
@@ -417,10 +432,10 @@ export function AIChatPanel({
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
-            padding: '6px 10px',
+            gap: 5,
+            padding: '5px 10px',
             borderTop: '1px solid var(--kode-border-dim)',
-            flexWrap: 'wrap'
+            position: 'relative'
           }}>
             {/* Model selector */}
             {settings && (PROVIDER_MODELS[settings.activeProvider] ?? []).length > 0 && (
@@ -429,10 +444,10 @@ export function AIChatPanel({
                 onChange={e => setProviderModel(settings.activeProvider, e.target.value)}
                 aria-label="Model"
                 style={{
-                  fontSize: 10, color: 'var(--text-muted)', background: 'var(--kode-surface-2)',
-                  border: '1px solid var(--border)', borderRadius: 10, padding: '2px 6px',
+                  fontSize: 10, color: 'var(--text-muted)', background: 'transparent',
+                  border: '1px solid var(--border)', borderRadius: 8, padding: '2px 5px',
                   fontFamily: 'var(--font-editor)', flexShrink: 0, cursor: 'pointer',
-                  outline: 'none', appearance: 'none', maxWidth: 110
+                  outline: 'none', appearance: 'none', maxWidth: 100
                 }}
               >
                 {(PROVIDER_MODELS[settings.activeProvider] ?? []).map(m => (
@@ -441,39 +456,115 @@ export function AIChatPanel({
               </select>
             )}
 
-            {/* Effort selector */}
-            <select
-              value={effort}
-              onChange={e => setEffort(e.target.value as EffortLevel)}
-              aria-label="Effort"
-              style={{
-                fontSize: 10, color: 'var(--text-muted)', background: 'var(--kode-surface-2)',
-                border: '1px solid var(--border)', borderRadius: 10, padding: '2px 6px',
-                fontFamily: 'inherit', flexShrink: 0, cursor: 'pointer',
-                outline: 'none', appearance: 'none'
-              }}
-            >
-              <option value="low">Fast</option>
-              <option value="medium">Balanced</option>
-              <option value="high">Deep</option>
-            </select>
+            {/* Effort pill */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <button
+                onClick={() => { setShowEffortMenu(v => !v); setShowPermsMenu(false) }}
+                aria-label="Effort"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  background: showEffortMenu ? 'var(--kode-surface-2)' : 'transparent',
+                  border: '1px solid var(--border)', borderRadius: 8,
+                  padding: '2px 7px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 10,
+                  color: 'var(--text-muted)'
+                }}
+              >
+                <span>Effort</span>
+                <div style={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                  {[1, 2, 3, 4].map(i => {
+                    const filled = i <= (EFFORT_LEVELS.find(e => e.value === effort)?.bars ?? 1)
+                    return (
+                      <div key={i} style={{
+                        width: 4, height: 8, borderRadius: 1,
+                        background: filled ? 'var(--accent)' : 'var(--border)',
+                        transition: 'background 0.15s'
+                      }} />
+                    )
+                  })}
+                </div>
+              </button>
+              {showEffortMenu && (
+                <div
+                  style={{
+                    position: 'absolute', bottom: 'calc(100% + 4px)', left: 0,
+                    background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                    borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                    zIndex: 200, minWidth: 160, overflow: 'hidden'
+                  }}
+                >
+                  {EFFORT_LEVELS.map(lvl => (
+                    <button
+                      key={lvl.value}
+                      onClick={() => { setEffort(lvl.value); setShowEffortMenu(false) }}
+                      style={{
+                        width: '100%', textAlign: 'left', padding: '7px 12px',
+                        background: effort === lvl.value ? 'var(--kode-selection)' : 'transparent',
+                        border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10
+                      }}
+                    >
+                      <span style={{ fontSize: 11, color: effort === lvl.value ? 'var(--accent)' : 'var(--text-primary)', fontWeight: effort === lvl.value ? 600 : 400 }}>
+                        {lvl.label}
+                      </span>
+                      <div style={{ display: 'flex', gap: 1.5 }}>
+                        {[1, 2, 3, 4].map(i => (
+                          <div key={i} style={{
+                            width: 4, height: 8, borderRadius: 1,
+                            background: i <= lvl.bars ? 'var(--accent)' : 'var(--border)'
+                          }} />
+                        ))}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-            {/* Perms selector */}
-            <select
-              value={perms}
-              onChange={e => setPerms(e.target.value as PermLevel)}
-              aria-label="Permissions"
-              style={{
-                fontSize: 10, color: 'var(--text-muted)', background: 'var(--kode-surface-2)',
-                border: '1px solid var(--border)', borderRadius: 10, padding: '2px 6px',
-                fontFamily: 'inherit', flexShrink: 0, cursor: 'pointer',
-                outline: 'none', appearance: 'none'
-              }}
-            >
-              <option value="read">Read</option>
-              <option value="write">Write</option>
-              <option value="full">Full</option>
-            </select>
+            {/* Perms pill */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <button
+                onClick={() => { setShowPermsMenu(v => !v); setShowEffortMenu(false) }}
+                aria-label="Permissions"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 3,
+                  background: showPermsMenu ? 'var(--kode-surface-2)' : 'transparent',
+                  border: '1px solid var(--border)', borderRadius: 8,
+                  padding: '2px 7px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 10,
+                  color: 'var(--text-muted)'
+                }}
+              >
+                {PERM_LEVELS.find(p => p.value === perms)?.label ?? 'Ask'}
+                <span style={{ fontSize: 8, opacity: 0.6 }}>▾</span>
+              </button>
+              {showPermsMenu && (
+                <div
+                  style={{
+                    position: 'absolute', bottom: 'calc(100% + 4px)', left: 0,
+                    background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                    borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                    zIndex: 200, minWidth: 200, overflow: 'hidden'
+                  }}
+                >
+                  {PERM_LEVELS.map(lvl => (
+                    <button
+                      key={lvl.value}
+                      onClick={() => { setPerms(lvl.value); setShowPermsMenu(false) }}
+                      style={{
+                        width: '100%', textAlign: 'left', padding: '7px 12px',
+                        background: perms === lvl.value ? 'var(--kode-selection)' : 'transparent',
+                        border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                        display: 'flex', flexDirection: 'column', gap: 2
+                      }}
+                    >
+                      <span style={{ fontSize: 11, color: perms === lvl.value ? 'var(--accent)' : 'var(--text-primary)', fontWeight: perms === lvl.value ? 600 : 400 }}>
+                        {lvl.label}
+                      </span>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{lvl.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div style={{ flex: 1 }} />
 

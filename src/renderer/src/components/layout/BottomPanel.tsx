@@ -1,8 +1,9 @@
 import { useState, CSSProperties } from 'react'
 import { TerminalPanel } from '../terminal/TerminalPanel'
 import { ChangesView } from '../git/ChangesView'
+import { GitPanel } from '../git/GitPanel'
 
-type BottomTab = 'terminal' | 'changes'
+type BottomTab = 'terminal' | 'changes' | 'git'
 
 interface BottomPanelProps {
   rootPath: string | null
@@ -34,25 +35,14 @@ export function BottomPanel({ rootPath }: BottomPanelProps) {
         background: 'var(--bg-secondary)',
         paddingLeft: 4
       }}>
-        <button
-          onClick={() => setActiveTab('terminal')}
-          aria-pressed={activeTab === 'terminal'}
-          aria-label="Terminal"
-          style={tabStyle('terminal')}
-        >
-          Terminal
-        </button>
-        <button
-          onClick={() => setActiveTab('changes')}
-          aria-pressed={activeTab === 'changes'}
-          aria-label="Changes"
-          style={tabStyle('changes')}
-        >
-          Changes
-        </button>
+        <button onClick={() => setActiveTab('terminal')} aria-pressed={activeTab === 'terminal'} aria-label="Terminal" style={tabStyle('terminal')}>Terminal</button>
+        <button onClick={() => setActiveTab('changes')} aria-pressed={activeTab === 'changes'} aria-label="Changes" style={tabStyle('changes')}>Changes</button>
+        <button onClick={() => setActiveTab('git')} aria-pressed={activeTab === 'git'} aria-label="Git" style={tabStyle('git')}>Git</button>
       </div>
       <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        {activeTab === 'terminal' ? <TerminalPanel cwd={rootPath ?? undefined} /> : <ChangesView rootPath={rootPath} />}
+        {activeTab === 'terminal' && <TerminalPanel cwd={rootPath ?? undefined} />}
+        {activeTab === 'changes' && <ChangesView rootPath={rootPath} />}
+        {activeTab === 'git' && <GitPanel rootPath={rootPath} />}
       </div>
     </div>
   )

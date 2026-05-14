@@ -7,12 +7,13 @@ import { KeybindingsSettings } from './KeybindingsSettings'
 import { GitHubSettings } from './GitHubSettings'
 import { DeploySettings } from './DeploySettings'
 import { AccountSettings } from './AccountSettings'
+import { FunSettings } from './FunSettings'
 import type { ThemeName } from '../../styles/themes'
 import type { McpServerConfig } from '../../types/electron'
 import type { KeybindingAction } from '../../styles/keybindings'
 import type { EditorConfig } from '../../hooks/useSettings'
 
-type SettingsTab = 'appearance' | 'editor' | 'mcp' | 'keybindings' | 'github' | 'deploy' | 'account'
+type SettingsTab = 'appearance' | 'editor' | 'mcp' | 'keybindings' | 'github' | 'deploy' | 'account' | 'fun'
 
 interface SettingsPanelProps {
   open: boolean
@@ -33,12 +34,15 @@ interface SettingsPanelProps {
   editorConfig: EditorConfig
   onSetEditorConfig(config: EditorConfig): void
   currentFolder?: string | null
+  settings?: import('../../hooks/useSettings').AppSettings | null
+  onUpdateSettings?(s: import('../../hooks/useSettings').AppSettings): void
 }
 
 export function SettingsPanel({
   open, onClose, initialTab, theme, customPrimary, customAccent, onSetTheme, onSetCustomColors,
   mcpServers, mcpPermission, onAddMcpServer, onRemoveMcpServer, onSetMcpPermission,
-  keybindings, onSetKeybinding, editorConfig, onSetEditorConfig, currentFolder
+  keybindings, onSetKeybinding, editorConfig, onSetEditorConfig, currentFolder,
+  settings, onUpdateSettings
 }: SettingsPanelProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab ?? 'appearance')
 
@@ -164,7 +168,7 @@ export function SettingsPanel({
             flexShrink: 0,
             background: 'var(--bg-sidebar)'
           }}>
-            {(['appearance', 'editor', 'mcp', 'keybindings', 'github', 'deploy', 'account'] as const).map(tab => (
+            {(['appearance', 'editor', 'mcp', 'keybindings', 'github', 'deploy', 'account', 'fun'] as const).map(tab => (
               <button
                 key={tab}
                 data-flat
@@ -189,7 +193,8 @@ export function SettingsPanel({
                   : tab === 'keybindings' ? 'Keybindings'
                   : tab === 'github' ? 'GitHub'
                   : tab === 'deploy' ? 'Deploy'
-                  : 'Account'}
+                  : tab === 'account' ? 'Account'
+                  : 'Fun'}
               </button>
             ))}
           </div>
@@ -231,6 +236,9 @@ export function SettingsPanel({
             )}
             {activeTab === 'account' && (
               <AccountSettings />
+            )}
+            {activeTab === 'fun' && (
+              <FunSettings settings={settings ?? null} onUpdate={onUpdateSettings ?? (() => {})} />
             )}
           </div>
         </div>
