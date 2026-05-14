@@ -25,8 +25,8 @@ contextBridge.exposeInMainWorld('kode', {
     }
   },
   terminal: {
-    spawn: (cols: number, rows: number): Promise<string> =>
-      ipcRenderer.invoke('terminal:spawn', cols, rows),
+    spawn: (cols: number, rows: number, cwd?: string): Promise<string> =>
+      ipcRenderer.invoke('terminal:spawn', cols, rows, cwd),
     write: (termId: string, data: string): void =>
       ipcRenderer.send('terminal:write', termId, data),
     resize: (termId: string, cols: number, rows: number): void =>

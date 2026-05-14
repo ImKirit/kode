@@ -52,7 +52,7 @@ export function BottomPanel({ rootPath }: BottomPanelProps) {
         </button>
       </div>
       <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        {activeTab === 'terminal' ? <TerminalPanel /> : <ChangesView rootPath={rootPath} />}
+        {activeTab === 'terminal' ? <TerminalPanel cwd={rootPath ?? undefined} /> : <ChangesView rootPath={rootPath} />}
       </div>
     </div>
   )

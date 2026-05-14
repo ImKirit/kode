@@ -8,7 +8,7 @@ export interface TerminalTab {
 export interface UseTerminalResult {
   terminals: TerminalTab[]
   activeTermId: string | null
-  createTerminal(): Promise<void>
+  createTerminal(cwd?: string): Promise<void>
   closeTerminal(id: string): void
   setActiveTerminal(id: string): void
 }
@@ -18,8 +18,8 @@ export function useTerminal(): UseTerminalResult {
   const [activeTermId, setActiveTermId] = useState<string | null>(null)
   const counter = useRef(1)
 
-  const createTerminal = useCallback(async () => {
-    const id = await window.kode.terminal.spawn(80, 24)
+  const createTerminal = useCallback(async (cwd?: string) => {
+    const id = await window.kode.terminal.spawn(80, 24, cwd)
     const title = `Terminal ${counter.current++}`
     setTerminals(prev => [...prev, { id, title }])
     setActiveTermId(id)

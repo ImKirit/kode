@@ -112,3 +112,38 @@ input:focus, textarea:focus {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.4; transform: scale(0.7); }
 }
+
+/* ── GoldenLayout theme overrides ────────────────────────── */
+.lm_goldenlayout { background: var(--bg-primary); }
+
+.lm_header { height: 32px !important; background: var(--bg-secondary); border-bottom: 1px solid var(--border); }
+
+.lm_tab {
+  height: 30px !important;
+  background: var(--bg-tab-inactive) !important;
+  border: none !important;
+  border-right: 1px solid var(--border) !important;
+  color: var(--text-muted) !important;
+  font-family: var(--font-ui) !important;
+  font-size: 12px !important;
+  padding: 0 12px !important;
+  margin: 0 !important;
+}
+.lm_tab.lm_active {
+  background: var(--bg-tab-active) !important;
+  color: var(--text-primary) !important;
+  border-bottom: 2px solid var(--accent) !important;
+}
+.lm_tab .lm_title { line-height: 30px; }
+.lm_tab .lm_close_tab { opacity: 0.5; }
+.lm_tab .lm_close_tab:hover { opacity: 1; }
+
+.lm_splitter { background: var(--border) !important; }
+.lm_splitter:hover,
+.lm_splitter.lm_dragging { background: var(--accent) !important; }
+
+.lm_content { background: var(--bg-primary); overflow: hidden; }
+
+.lm_controls .lm_tabdropdown_list { background: var(--bg-secondary); border: 1px solid var(--border); }
+.lm_controls .lm_tabdropdown_list .lm_tab { background: transparent !important; }
+.lm_controls .lm_tabdropdown_list .lm_tab:hover { background: var(--bg-primary) !important; }

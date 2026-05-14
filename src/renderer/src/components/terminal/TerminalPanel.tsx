@@ -3,7 +3,11 @@ import { Plus, X } from 'lucide-react'
 import { useTerminal } from '../../hooks/useTerminal'
 import { XtermTerminal } from './XtermTerminal'
 
-export function TerminalPanel() {
+interface TerminalPanelProps {
+  cwd?: string
+}
+
+export function TerminalPanel({ cwd }: TerminalPanelProps) {
   const { terminals, activeTermId, createTerminal, closeTerminal, setActiveTerminal } = useTerminal()
 
   const tabBarStyle: React.CSSProperties = {
@@ -69,7 +73,7 @@ export function TerminalPanel() {
         <button
           aria-label="New Terminal"
           title="New Terminal"
-          onClick={createTerminal}
+          onClick={() => createTerminal(cwd)}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -90,15 +94,19 @@ export function TerminalPanel() {
       {/* Terminal area: all instances stay mounted; only active is visible */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: 'var(--bg-primary)' }}>
         {terminals.length === 0 && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            color: 'var(--text-muted)',
-            fontSize: 12
-          }}>
-            Click + to open a terminal
+          <div
+            onClick={() => createTerminal(cwd)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              color: 'var(--text-muted)',
+              fontSize: 12,
+              cursor: 'pointer'
+            }}
+          >
+            Click to open a terminal{cwd ? ` in ${cwd.split(/[\\/]/).pop()}` : ''}
           </div>
         )}
         {terminals.map(t => (

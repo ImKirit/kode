@@ -15,12 +15,13 @@ export function registerTerminalHandlers(): void {
   if (registered) return
   registered = true
 
-  ipcMain.handle('terminal:spawn', (event, cols: number, rows: number) => {
+  ipcMain.handle('terminal:spawn', (event, cols: number, rows: number, requestedCwd?: string) => {
     const termId = crypto.randomUUID()
     const shell = process.platform === 'win32'
       ? 'powershell.exe'
       : (process.env['SHELL'] ?? '/bin/bash')
-    const cwd = process.env['HOME'] ?? process.env['USERPROFILE'] ?? process.cwd()
+    const fallback = process.env['HOME'] ?? process.env['USERPROFILE'] ?? process.cwd()
+    const cwd = requestedCwd ?? fallback
 
     const term = pty.spawn(shell, [], {
       name: 'xterm-color',

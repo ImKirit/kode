@@ -8,7 +8,7 @@ import { useTheme } from './hooks/useTheme'
 import { useSettings } from './hooks/useSettings'
 import { useClaudeContext } from './hooks/useClaudeContext'
 import { useChatHistory } from './hooks/useChatHistory'
-import { AppLayout } from './components/layout/AppLayout'
+import { GoldenLayoutWrapper } from './components/layout/GoldenLayoutWrapper'
 import { ActivityBar } from './components/layout/ActivityBar'
 import { MenuBar } from './components/layout/MenuBar'
 import { FileTree } from './components/filetree/FileTree'
@@ -95,8 +95,7 @@ export function App() {
 
   return (
     <>
-      <AppLayout
-        layout={layout}
+      <GoldenLayoutWrapper
         menuBar={
           <MenuBar
             projectName={project.name}
@@ -119,7 +118,7 @@ export function App() {
             onTogglePluginBrowser={() => setPluginBrowserOpen(v => !v)}
           />
         }
-        sidebar={
+        renderExplorer={() =>
           sidebarView === 'threads' ? (
             <ThreadsPanel
               sessions={chatHistory.sessions}
@@ -142,7 +141,7 @@ export function App() {
             />
           )
         }
-        editor={
+        renderEditor={() => (
           <EditorArea
             openFiles={openFiles}
             activeFilePath={activeFilePath}
@@ -153,8 +152,8 @@ export function App() {
             monacoTheme={themeState.monacoTheme}
             editorConfig={settings?.editor ?? DEFAULT_EDITOR_CONFIG}
           />
-        }
-        aiPanel={
+        )}
+        renderAi={() => (
           <AIChatPanel
             autoFollowEnabled={autoFollow.enabled}
             onToggleAutoFollow={autoFollow.toggle}
@@ -167,8 +166,8 @@ export function App() {
             activeProvider={activeProvider}
             activeModel={activeModel}
           />
-        }
-        bottomPanel={<BottomPanel rootPath={project.rootPath} />}
+        )}
+        renderBottomPanel={() => <BottomPanel rootPath={project.rootPath} />}
         statusBar={
           <div style={{
             display: 'flex',
