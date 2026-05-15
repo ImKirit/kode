@@ -85,8 +85,8 @@ function NumberStepper({ value, min, max, onChange }: { value: number; min: numb
   )
 }
 
-function SegmentedControl<T extends string>({ value, options, labels, onChange }: {
-  value: T; options: T[]; labels?: Record<T, string>; onChange(v: T): void
+function SegmentedControl<T extends string | number>({ value, options, labels, onChange }: {
+  value: T; options: T[]; labels?: Partial<Record<string, string>>; onChange(v: T): void
 }) {
   return (
     <div style={{
@@ -95,7 +95,7 @@ function SegmentedControl<T extends string>({ value, options, labels, onChange }
     }}>
       {options.map(opt => (
         <button
-          key={opt}
+          key={String(opt)}
           onClick={() => onChange(opt)}
           style={{
             padding: '3px 10px', fontSize: 12, border: 'none', cursor: 'pointer',
@@ -105,7 +105,7 @@ function SegmentedControl<T extends string>({ value, options, labels, onChange }
             borderRight: '1px solid var(--border)'
           }}
         >
-          {labels?.[opt] ?? opt}
+          {labels?.[String(opt)] ?? opt}
         </button>
       ))}
     </div>
@@ -127,7 +127,7 @@ export function EditorSettings({ config, onChange }: EditorSettingsProps) {
         <SegmentedControl<number>
           value={config.tabSize}
           options={[2, 4]}
-          labels={{ 2: '2', 4: '4' }}
+          labels={{ '2': '2 spaces', '4': '4 spaces' }}
           onChange={v => set('tabSize', v)}
         />
       </Row>
