@@ -27,8 +27,6 @@ export function MonacoEditor({ content, language, onChange, onSave, isActive, mo
   const onSaveRef = useRef(onSave)
   useEffect(() => { onSaveRef.current = onSave }, [onSave])
 
-  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
   useEffect(() => {
     if (isActive && editorRef.current) {
       editorRef.current.layout()
@@ -64,11 +62,13 @@ export function MonacoEditor({ content, language, onChange, onSave, isActive, mo
         fontLigatures: true,
         lineHeight: 20,
         scrollBeyondLastLine: false,
-        renderWhitespace: 'selection',
+        renderWhitespace: cfg.showWhitespace ? 'all' : 'selection',
         renderLineHighlight: 'gutter',
-        bracketPairColorization: { enabled: cfg.bracketPairColorization ?? true },
-        guides: { bracketPairs: cfg.bracketPairColorization ?? true },
-        smoothScrolling: cfg.smoothScrolling ?? true,
+        bracketPairColorization: { enabled: true },
+        guides: { bracketPairs: true },
+        smoothScrolling: true,
+        stickyScroll: { enabled: cfg.stickyScroll ?? true },
+        autoClosingBrackets: (cfg.autoCloseBrackets ?? true) ? 'always' : 'never',
         cursorBlinking: 'smooth',
         cursorSmoothCaretAnimation: 'on',
         overviewRulerBorder: false,
@@ -78,13 +78,7 @@ export function MonacoEditor({ content, language, onChange, onSave, isActive, mo
         inlineSuggest: { enabled: true },
         suggest: { preview: true }
       }}
-      onChange={v => {
-        onChange(v ?? '')
-        if (cfgRef.current.autoSave) {
-          if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
-          autoSaveTimer.current = setTimeout(() => onSaveRef.current(), 1000)
-        }
-      }}
+      onChange={v => { onChange(v ?? '') }}
       onMount={handleMount}
     />
   )

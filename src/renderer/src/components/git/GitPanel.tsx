@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
-import { GitBranch, RefreshCw, Upload, Download, Plus, Check, AlertCircle } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { GitBranch, RefreshCw, Upload, Download, Plus, Check, AlertCircle, Sparkles } from 'lucide-react'
+import { useSettings } from '../../hooks/useSettings'
 
 interface Branch {
   name: string
@@ -20,6 +21,9 @@ interface GitPanelProps {
 type OpStatus = { type: 'idle' } | { type: 'loading'; op: string } | { type: 'ok'; msg: string } | { type: 'error'; msg: string }
 
 export function GitPanel({ rootPath }: GitPanelProps) {
+  const { settings } = useSettings()
+  const aiEnabled = settings?.aiCommitMessages ?? true
+
   const [branch, setBranch] = useState<string>('')
   const [branches, setBranches] = useState<Branch[]>([])
   const [log, setLog] = useState<LogEntry[]>([])
@@ -27,6 +31,9 @@ export function GitPanel({ rootPath }: GitPanelProps) {
   const [status, setStatus] = useState<OpStatus>({ type: 'idle' })
   const [showBranches, setShowBranches] = useState(false)
   const [newBranchName, setNewBranchName] = useState('')
+  const [commitMsg, setCommitMsg] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const generatingRef = useRef(false)
 
   const refresh = useCallback(async () => {
     if (!rootPath) return
@@ -64,6 +71,39 @@ export function GitPanel({ rootPath }: GitPanelProps) {
   const handlePull = () => runOp('Pull', () => window.kode.git.pull(rootPath!, 'origin', branch))
   const handlePush = () => runOp('Push', () => window.kode.git.push(rootPath!, 'origin', branch))
   const handleFetch = () => runOp('Fetch', () => window.kode.git.pull(rootPath!, 'origin', ''))
+
+  const handleCommit = () => {
+    if (!commitMsg.trim()) return
+    runOp('Commit', async () => {
+      await window.kode.git.commit(rootPath!, commitMsg.trim())
+      setCommitMsg('')
+    })
+  }
+
+  const handleGenerateMessage = useCallback(async () => {
+    if (!rootPath || generating) return
+    setGenerating(true)
+    generatingRef.current = true
+    setCommitMsg('')
+    try {
+      let diff = await window.kode.git.diff(rootPath, undefined, true).catch(() => '')
+      if (!diff.trim()) diff = await window.kode.git.diff(rootPath).catch(() => '')
+      if (!diff.trim()) { setGenerating(false); generatingRef.current = false; return }
+
+      let msg = ''
+      const cleanToken = window.kode.ai.onToken(text => { if (generatingRef.current) { msg += text; setCommitMsg(msg) } })
+      const cleanDone = window.kode.ai.onDone(() => { cleanToken(); cleanDone(); setGenerating(false); generatingRef.current = false })
+      const cleanErr = window.kode.ai.onError(() => { cleanToken(); cleanDone(); cleanErr(); setGenerating(false); generatingRef.current = false })
+
+      await window.kode.ai.sendMessage(
+        [{ role: 'user', content: `Generate a conventional commit message for these changes:\n\n${diff.slice(0, 6000)}` }],
+        'You are a git commit message generator. Write a single conventional commit message (type: description). First line under 72 characters. Reply with ONLY the commit message, nothing else.'
+      )
+    } catch {
+      setGenerating(false)
+      generatingRef.current = false
+    }
+  }, [rootPath, generating])
 
   const handleCheckout = async (name: string) => {
     if (!rootPath || name === branch) return
@@ -224,6 +264,55 @@ export function GitPanel({ rootPath }: GitPanelProps) {
           </span>
         </div>
       )}
+
+      {/* Commit section */}
+      <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <textarea
+          placeholder="Commit message..."
+          value={commitMsg}
+          onChange={e => setCommitMsg(e.target.value)}
+          onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleCommit() }}
+          rows={3}
+          style={{
+            width: '100%', boxSizing: 'border-box', resize: 'none',
+            padding: '6px 8px', fontSize: 11, fontFamily: 'inherit',
+            background: 'var(--bg-primary)', border: '1px solid var(--border)',
+            borderRadius: 5, color: 'var(--text-primary)', outline: 'none', lineHeight: 1.5
+          }}
+        />
+        <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+          {aiEnabled && (
+            <button
+              onClick={handleGenerateMessage}
+              disabled={generating || isLoading}
+              title="Generate commit message from staged diff"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', fontSize: 11, borderRadius: 5,
+                background: generating ? 'var(--bg-sidebar)' : 'none',
+                border: '1px solid var(--border)', cursor: generating ? 'default' : 'pointer',
+                color: generating ? 'var(--text-muted)' : 'var(--accent)', fontFamily: 'inherit'
+              }}
+            >
+              <Sparkles size={11} />
+              {generating ? 'Generating...' : 'Generate'}
+            </button>
+          )}
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={handleCommit}
+            disabled={!commitMsg.trim() || isLoading}
+            style={{
+              padding: '4px 14px', fontSize: 11, borderRadius: 5, fontFamily: 'inherit',
+              background: commitMsg.trim() && !isLoading ? 'var(--accent)' : 'var(--bg-sidebar)',
+              color: commitMsg.trim() && !isLoading ? '#fff' : 'var(--text-muted)',
+              border: '1px solid transparent', cursor: commitMsg.trim() && !isLoading ? 'pointer' : 'default'
+            }}
+          >
+            Commit
+          </button>
+        </div>
+      </div>
 
       {/* Commit log */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>

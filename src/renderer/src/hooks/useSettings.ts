@@ -14,9 +14,9 @@ export interface EditorConfig {
   minimap: boolean
   lineNumbers: 'on' | 'off' | 'relative'
   formatOnSave?: boolean
-  autoSave?: boolean
-  bracketPairColorization?: boolean
-  smoothScrolling?: boolean
+  stickyScroll?: boolean
+  autoCloseBrackets?: boolean
+  showWhitespace?: boolean
 }
 
 export const DEFAULT_EDITOR_CONFIG: EditorConfig = {
@@ -25,10 +25,10 @@ export const DEFAULT_EDITOR_CONFIG: EditorConfig = {
   wordWrap: 'off',
   minimap: true,
   lineNumbers: 'on',
-  formatOnSave: false,
-  autoSave: false,
-  bracketPairColorization: true,
-  smoothScrolling: true
+  formatOnSave: true,
+  stickyScroll: true,
+  autoCloseBrackets: true,
+  showWhitespace: false
 }
 
 export type ProviderId = 'anthropic' | 'openai' | 'kode' | 'copilot'
@@ -41,6 +41,7 @@ export interface AppSettings {
   keybindings?: Record<string, string>
   editor?: EditorConfig
   localHostPort?: number
+  aiCommitMessages?: boolean
 }
 
 export interface UseSettingsResult {

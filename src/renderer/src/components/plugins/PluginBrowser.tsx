@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSettings } from '../../hooks/useSettings'
-import type { EditorConfig } from '../../hooks/useSettings'
+import type { EditorConfig, AppSettings } from '../../hooks/useSettings'
 
 interface PluginMeta {
   id: string
@@ -22,19 +22,27 @@ interface BuiltinPluginDef {
   id: string
   name: string
   category: string
-  isKode: boolean
   description: string
-  get(cfg: EditorConfig): boolean
-  set(cfg: EditorConfig, v: boolean): EditorConfig
+  getEnabled(settings: AppSettings): boolean
+  toggle(settings: AppSettings): AppSettings
 }
 
 interface RecommendedPluginDef {
   id: string
   name: string
+  npmId: string
   publisher: string
   category: string
   description: string
-  marketplaceId: string
+}
+
+const DEFAULT_EDITOR: EditorConfig = {
+  fontSize: 13, tabSize: 2, wordWrap: 'off', minimap: true, lineNumbers: 'on',
+  formatOnSave: true, stickyScroll: true, autoCloseBrackets: true, showWhitespace: false
+}
+
+function withEditor(s: AppSettings, patch: Partial<EditorConfig>): AppSettings {
+  return { ...s, editor: { ...(s.editor ?? DEFAULT_EDITOR), ...patch } }
 }
 
 const BUILTIN_PLUGINS: BuiltinPluginDef[] = [
@@ -42,55 +50,41 @@ const BUILTIN_PLUGINS: BuiltinPluginDef[] = [
     id: 'formatOnSave',
     name: 'Format on Save',
     category: 'Productivity',
-    isKode: true,
     description: 'Formats the entire document with the built-in formatter every time you press Ctrl+S.',
-    get: cfg => cfg.formatOnSave ?? false,
-    set: (cfg, v) => ({ ...cfg, formatOnSave: v })
+    getEnabled: s => s.editor?.formatOnSave ?? true,
+    toggle: s => withEditor(s, { formatOnSave: !(s.editor?.formatOnSave ?? true) })
   },
   {
-    id: 'autoSave',
-    name: 'Auto Save',
-    category: 'Productivity',
-    isKode: true,
-    description: 'Saves files automatically 1 second after your last keystroke. No need to Ctrl+S.',
-    get: cfg => cfg.autoSave ?? false,
-    set: (cfg, v) => ({ ...cfg, autoSave: v })
-  },
-  {
-    id: 'minimap',
-    name: 'Minimap',
+    id: 'stickyScroll',
+    name: 'Sticky Scroll',
     category: 'Editor',
-    isKode: false,
-    description: 'Shows a bird\'s-eye code overview on the right edge of the editor.',
-    get: cfg => cfg.minimap,
-    set: (cfg, v) => ({ ...cfg, minimap: v })
+    description: 'Pins the current scope header (function, class, block) to the top of the editor while scrolling.',
+    getEnabled: s => s.editor?.stickyScroll ?? true,
+    toggle: s => withEditor(s, { stickyScroll: !(s.editor?.stickyScroll ?? true) })
   },
   {
-    id: 'wordWrap',
-    name: 'Word Wrap',
+    id: 'autoCloseBrackets',
+    name: 'Auto Close Brackets',
     category: 'Editor',
-    isKode: false,
-    description: 'Wraps long lines to fit the editor width instead of scrolling horizontally.',
-    get: cfg => cfg.wordWrap === 'on',
-    set: (cfg, v) => ({ ...cfg, wordWrap: v ? 'on' as const : 'off' as const })
+    description: 'Automatically inserts a closing bracket, parenthesis, or quote when you type an opening one.',
+    getEnabled: s => s.editor?.autoCloseBrackets ?? true,
+    toggle: s => withEditor(s, { autoCloseBrackets: !(s.editor?.autoCloseBrackets ?? true) })
   },
   {
-    id: 'bracketPairColorization',
-    name: 'Bracket Pair Colorization',
+    id: 'showWhitespace',
+    name: 'Show Whitespace',
     category: 'Editor',
-    isKode: false,
-    description: 'Colors matching bracket pairs with distinct colors to simplify reading nested code.',
-    get: cfg => cfg.bracketPairColorization ?? true,
-    set: (cfg, v) => ({ ...cfg, bracketPairColorization: v })
+    description: 'Renders spaces and tabs as visible characters in the editor to help detect invisible formatting.',
+    getEnabled: s => s.editor?.showWhitespace ?? false,
+    toggle: s => withEditor(s, { showWhitespace: !(s.editor?.showWhitespace ?? false) })
   },
   {
-    id: 'smoothScrolling',
-    name: 'Smooth Scrolling',
-    category: 'Editor',
-    isKode: false,
-    description: 'Adds animation to editor scrolling for a smoother visual experience.',
-    get: cfg => cfg.smoothScrolling ?? true,
-    set: (cfg, v) => ({ ...cfg, smoothScrolling: v })
+    id: 'aiCommitMessages',
+    name: 'AI Commit Messages',
+    category: 'AI',
+    description: 'Adds a Generate button in the Git panel that drafts a conventional commit message from your staged diff.',
+    getEnabled: s => s.aiCommitMessages ?? true,
+    toggle: s => ({ ...s, aiCommitMessages: !(s.aiCommitMessages ?? true) })
   }
 ]
 
@@ -98,54 +92,54 @@ const RECOMMENDED_PLUGINS: RecommendedPluginDef[] = [
   {
     id: 'prettier',
     name: 'Prettier – Code formatter',
-    publisher: 'esbenp',
+    npmId: 'prettier',
+    publisher: 'Prettier',
     category: 'Formatter',
-    description: 'Opinionated formatter for JS, TS, CSS, HTML, JSON, and Markdown.',
-    marketplaceId: 'esbenp.prettier-vscode'
+    description: 'Opinionated formatter for JS, TS, CSS, HTML, JSON, and Markdown.'
   },
   {
     id: 'eslint',
     name: 'ESLint',
-    publisher: 'dbaeumer',
+    npmId: 'eslint',
+    publisher: 'ESLint',
     category: 'Linter',
-    description: 'Integrates ESLint linting feedback directly into the editor gutter.',
-    marketplaceId: 'dbaeumer.vscode-eslint'
+    description: 'Statically analyzes your code to quickly find and fix problems.'
   },
   {
-    id: 'gitlens',
-    name: 'GitLens',
-    publisher: 'eamodio',
-    category: 'Git',
-    description: 'Inline Git blame, rich history navigation, and repository exploration.',
-    marketplaceId: 'eamodio.gitlens'
+    id: 'typescript',
+    name: 'TypeScript',
+    npmId: 'typescript',
+    publisher: 'Microsoft',
+    category: 'Language',
+    description: 'TypeScript language support and compiler for type-safe JavaScript projects.'
   },
   {
-    id: 'error-lens',
-    name: 'Error Lens',
-    publisher: 'usernamehw',
-    category: 'Linter',
-    description: 'Shows errors and warnings inline next to the source line that caused them.',
-    marketplaceId: 'usernamehw.errorlens'
+    id: 'ts-node',
+    name: 'ts-node',
+    npmId: 'ts-node',
+    publisher: 'TypeStrong',
+    category: 'Runtime',
+    description: 'Run TypeScript files directly without a separate compilation step.'
   },
   {
-    id: 'auto-rename-tag',
-    name: 'Auto Rename Tag',
-    publisher: 'formulahendry',
+    id: 'nodemon',
+    name: 'nodemon',
+    npmId: 'nodemon',
+    publisher: 'remy',
     category: 'Productivity',
-    description: 'Automatically renames the matching HTML/XML tag when you edit one side.',
-    marketplaceId: 'formulahendry.auto-rename-tag'
+    description: 'Automatically restarts your Node.js app when source files change.'
   }
 ]
 
 const categoryColor: Record<string, string> = {
-  Server:       '#4ade80',
   Formatter:    '#6366f1',
   Linter:       '#f59e0b',
   Git:          '#f87171',
   Productivity: '#22d3ee',
-  Snippets:     '#a78bfa',
   Editor:       '#818cf8',
-  AI:           '#a78bfa'
+  AI:           '#a78bfa',
+  Language:     '#4ade80',
+  Runtime:      '#fb923c'
 }
 
 function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle(): void }) {
@@ -171,12 +165,13 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle(): void }) {
 }
 
 export function PluginBrowser({ rootPath: _rootPath }: { rootPath?: string | null }) {
-  const { settings, setEditorConfig } = useSettings()
+  const { settings, updateSettings } = useSettings()
   const [installed, setInstalled] = useState<PluginMeta[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<PluginSearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [installedRec, setInstalledRec] = useState<Set<string>>(new Set())
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const refreshInstalled = useCallback(async () => {
@@ -203,6 +198,7 @@ export function PluginBrowser({ rootPath: _rootPath }: { rootPath?: string | nul
     try {
       await window.kode.plugins.install(id)
       await refreshInstalled()
+      setInstalledRec(prev => new Set(prev).add(id))
     } catch (e) {
       console.error('Install failed:', e)
     } finally {
@@ -222,14 +218,11 @@ export function PluginBrowser({ rootPath: _rootPath }: { rootPath?: string | nul
 
   const handleToggleBuiltin = useCallback((plugin: BuiltinPluginDef) => {
     if (!settings) return
-    const cfg = settings.editor ?? { fontSize: 13, tabSize: 2, wordWrap: 'off' as const, minimap: true, lineNumbers: 'on' as const }
-    const current = plugin.get(cfg)
-    setEditorConfig(plugin.set(cfg, !current))
-  }, [settings, setEditorConfig])
+    updateSettings(plugin.toggle(settings)).catch(() => {})
+  }, [settings, updateSettings])
 
   const installedIds = new Set(installed.map(p => p.id))
   const isSearching = !!searchQuery.trim()
-  const editorCfg = settings?.editor
 
   const sectionLabel: React.CSSProperties = {
     fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
@@ -254,7 +247,6 @@ export function PluginBrowser({ rootPath: _rootPath }: { rootPath?: string | nul
         Built-in toggles and npm packages tagged <code style={{ fontFamily: 'monospace', fontSize: 11 }}>kode-plugin</code>.
       </div>
 
-      {/* Search */}
       <input
         placeholder="Search marketplace (e.g. prettier, eslint)..."
         value={searchQuery}
@@ -266,7 +258,6 @@ export function PluginBrowser({ rootPath: _rootPath }: { rootPath?: string | nul
         }}
       />
 
-      {/* Search results */}
       {isSearching && (
         <>
           <div style={sectionLabel}>Marketplace Results</div>
@@ -302,13 +293,12 @@ export function PluginBrowser({ rootPath: _rootPath }: { rootPath?: string | nul
         </>
       )}
 
-      {/* Built-in toggleable plugins */}
       {!isSearching && (
         <>
           <div style={sectionLabel}>Built-in</div>
           {BUILTIN_PLUGINS.map(plugin => {
             const catColor = categoryColor[plugin.category] ?? 'var(--text-muted)'
-            const enabled = editorCfg ? plugin.get(editorCfg) : false
+            const enabled = settings ? plugin.getEnabled(settings) : false
             return (
               <div key={plugin.id} style={row}>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -318,12 +308,10 @@ export function PluginBrowser({ rootPath: _rootPath }: { rootPath?: string | nul
                       fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', padding: '1px 5px', borderRadius: 4,
                       background: catColor + '22', color: catColor, border: `1px solid ${catColor}55`
                     }}>{plugin.category}</span>
-                    {plugin.isKode && (
-                      <span style={{
-                        fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', padding: '1px 5px', borderRadius: 4,
-                        background: 'var(--kode-selection)', color: 'var(--accent)', border: '1px solid var(--accent)44'
-                      }}>Kode</span>
-                    )}
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', padding: '1px 5px', borderRadius: 4,
+                      background: 'var(--kode-selection)', color: 'var(--accent)', border: '1px solid var(--accent)44'
+                    }}>Kode</span>
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>
                     {plugin.description}
@@ -336,7 +324,6 @@ export function PluginBrowser({ rootPath: _rootPath }: { rootPath?: string | nul
         </>
       )}
 
-      {/* Recommended (VS Code marketplace extensions) */}
       {!isSearching && (
         <>
           <div style={{ ...sectionLabel, marginTop: 28, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -345,13 +332,15 @@ export function PluginBrowser({ rootPath: _rootPath }: { rootPath?: string | nul
               fontSize: 9, fontWeight: 600, letterSpacing: '0.04em', padding: '1px 6px', borderRadius: 4,
               background: 'rgba(99,102,241,0.12)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.3)',
               textTransform: 'none'
-            }}>VS Code Marketplace</span>
+            }}>npm</span>
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>
-            Popular extensions from the VS Code ecosystem — native Kode integration coming soon.
+            Essential tools installed into your Kode plugins directory and available in the terminal.
           </div>
           {RECOMMENDED_PLUGINS.map(plugin => {
             const catColor = categoryColor[plugin.category] ?? 'var(--text-muted)'
+            const isInst = installedRec.has(plugin.npmId)
+            const isLoading = loadingId === plugin.npmId
             return (
               <div key={plugin.id} style={{ ...row, alignItems: 'flex-start' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -367,19 +356,23 @@ export function PluginBrowser({ rootPath: _rootPath }: { rootPath?: string | nul
                     {plugin.description}
                   </div>
                 </div>
-                <button
-                  onClick={() => window.kode.shell.openExternal(`https://marketplace.visualstudio.com/items?itemName=${plugin.marketplaceId}`)}
-                  style={{ ...btnBase, background: 'none', color: 'var(--accent)', borderColor: 'var(--accent)55', flexShrink: 0 }}
-                >
-                  View
-                </button>
+                {isInst ? (
+                  <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)', flexShrink: 0 }}>installed</span>
+                ) : (
+                  <button
+                    onClick={() => handleInstall(plugin.npmId)}
+                    disabled={isLoading || loadingId !== null}
+                    style={{ ...btnBase, background: isLoading ? 'var(--bg-sidebar)' : 'var(--accent)', color: isLoading ? 'var(--text-muted)' : '#fff', borderColor: isLoading ? 'var(--border)' : 'var(--accent)' }}
+                  >
+                    {isLoading ? 'Installing...' : 'Install'}
+                  </button>
+                )}
               </div>
             )
           })}
         </>
       )}
 
-      {/* Installed npm plugins */}
       {!isSearching && (
         <>
           <div style={{ ...sectionLabel, marginTop: 28 }}>Installed</div>

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
-const mockSetEditorConfig = vi.hoisted(() => vi.fn())
+const mockUpdateSettings = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
 const mockUseSettings = vi.hoisted(() => vi.fn())
 
 vi.mock('@renderer/hooks/useSettings', () => ({ useSettings: mockUseSettings }))
@@ -13,14 +13,15 @@ const mockUninstall = vi.fn()
 
 const DEFAULT_EDITOR = {
   fontSize: 13, tabSize: 2, wordWrap: 'off', minimap: true, lineNumbers: 'on',
-  formatOnSave: false, autoSave: false, bracketPairColorization: true, smoothScrolling: true
+  formatOnSave: false, stickyScroll: true, autoCloseBrackets: true, showWhitespace: false
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockUpdateSettings.mockResolvedValue(undefined)
   mockUseSettings.mockReturnValue({
-    settings: { editor: DEFAULT_EDITOR },
-    setEditorConfig: mockSetEditorConfig
+    settings: { editor: DEFAULT_EDITOR, aiCommitMessages: true },
+    updateSettings: mockUpdateSettings
   })
   Object.defineProperty(window, 'kode', {
     value: {
@@ -165,13 +166,13 @@ describe('PluginBrowser', () => {
     })
   })
 
-  it('calls setEditorConfig when a built-in toggle is clicked', async () => {
+  it('calls updateSettings when a built-in toggle is clicked', async () => {
     render(<PluginBrowser />)
     await waitFor(() => screen.getByText('Format on Save'))
     const toggle = screen.getAllByRole('switch')[0]
     fireEvent.click(toggle)
-    expect(mockSetEditorConfig).toHaveBeenCalledWith(
-      expect.objectContaining({ formatOnSave: true })
+    expect(mockUpdateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ editor: expect.objectContaining({ formatOnSave: true }) })
     )
   })
 })

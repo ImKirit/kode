@@ -99,11 +99,16 @@ export interface AppSettings {
   editor?: {
     fontSize: number
     tabSize: number
-    wordWrap: 'on' | 'off' | 'wordWrapColumn' | 'bounded'
+    wordWrap: 'on' | 'off'
     minimap: boolean
     lineNumbers: 'on' | 'off' | 'relative'
-    formatOnSave: boolean
+    formatOnSave?: boolean
+    stickyScroll?: boolean
+    autoCloseBrackets?: boolean
+    showWhitespace?: boolean
   }
+  localHostPort?: number
+  aiCommitMessages?: boolean
 }
 
 declare global {
