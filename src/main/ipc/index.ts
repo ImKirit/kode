@@ -3,7 +3,11 @@ import {
   readDirHandler,
   readFileHandler,
   writeFileHandler,
-  openFolderHandler
+  openFolderHandler,
+  createFileHandler,
+  createDirHandler,
+  renameHandler,
+  deleteHandler
 } from './fs'
 import { registerTerminalHandlers } from './terminal'
 import { registerAiHandlers } from './ai'
@@ -31,6 +35,10 @@ export function registerIpcHandlers(): void {
     writeFileHandler(filePath, content)
   )
   ipcMain.handle('fs:openFolder', () => openFolderHandler())
+  ipcMain.handle('fs:createFile', (_event, filePath: string) => createFileHandler(filePath))
+  ipcMain.handle('fs:createDir', (_event, dirPath: string) => createDirHandler(dirPath))
+  ipcMain.handle('fs:rename', (_event, oldPath: string, newPath: string) => renameHandler(oldPath, newPath))
+  ipcMain.handle('fs:delete', (_event, itemPath: string) => deleteHandler(itemPath))
   registerTerminalHandlers()
   registerAiHandlers()
   registerSettingsHandlers()

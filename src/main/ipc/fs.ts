@@ -32,3 +32,19 @@ export async function openFolderHandler(): Promise<string | null> {
   })
   return result.canceled ? null : result.filePaths[0]
 }
+
+export async function createFileHandler(filePath: string): Promise<void> {
+  await fs.writeFile(filePath, '', 'utf-8')
+}
+
+export async function createDirHandler(dirPath: string): Promise<void> {
+  await fs.mkdir(dirPath, { recursive: true })
+}
+
+export async function renameHandler(oldPath: string, newPath: string): Promise<void> {
+  await fs.rename(oldPath, newPath)
+}
+
+export async function deleteHandler(itemPath: string): Promise<void> {
+  await fs.rm(itemPath, { recursive: true, force: true })
+}

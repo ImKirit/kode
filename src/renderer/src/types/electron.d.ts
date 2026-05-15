@@ -120,6 +120,10 @@ declare global {
         readFile(filePath: string): Promise<string>
         writeFile(filePath: string, content: string): Promise<void>
         openFolder(): Promise<string | null>
+        createFile(filePath: string): Promise<void>
+        createDir(dirPath: string): Promise<void>
+        rename(oldPath: string, newPath: string): Promise<void>
+        delete(itemPath: string): Promise<void>
         watchRoot(rootPath: string): Promise<void>
         unwatchRoot(): void
         onFileChange(cb: (filePath: string, content: string) => void): () => void
@@ -226,6 +230,7 @@ declare global {
         openExternal(url: string): Promise<void>
       }
       setTitle(title: string): void
+      openNewWindow(): Promise<void>
       mcp: {
         listTools(): Promise<McpTool[]>
         connect(config: McpServerConfig): Promise<void>

@@ -2,6 +2,9 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import type { OpenFile, ProjectState } from '../types'
 import { languageFromPath } from '../types'
 
+const SESSION_KEY = 'kode:session'
+const IS_NEW_WINDOW = new URLSearchParams(window.location.search).get('newWindow') === '1'
+
 interface UseProject {
   project: ProjectState
   openFiles: OpenFile[]
@@ -19,6 +22,8 @@ export function useProject(): UseProject {
   const [openFiles, setOpenFiles] = useState<OpenFile[]>([])
   const openFilesRef = useRef<OpenFile[]>([])
   const [activeFilePath, setActiveFilePath] = useState<string | null>(null)
+  const isRestoringRef = useRef(false)
+  const [pendingRestore, setPendingRestore] = useState<{ paths: string[]; active: string | null } | null>(null)
 
   useEffect(() => {
     openFilesRef.current = openFiles
@@ -28,6 +33,52 @@ export function useProject(): UseProject {
     const title = project.name ? `Kode | ${project.name}` : 'Kode'
     window.kode.setTitle(title)
   }, [project.name])
+
+  // Restore session on mount (skip for new empty windows)
+  useEffect(() => {
+    if (IS_NEW_WINDOW) return
+    try {
+      const raw = localStorage.getItem(SESSION_KEY)
+      if (!raw) return
+      const { rootPath, openPaths, active } = JSON.parse(raw) as {
+        rootPath: string; openPaths: string[]; active: string | null
+      }
+      if (!rootPath) return
+      isRestoringRef.current = true
+      const name = rootPath.split(/[/\\]/).pop() ?? rootPath
+      setProject({ rootPath, name })
+      if (openPaths?.length) {
+        setPendingRestore({ paths: openPaths, active: active ?? null })
+      } else {
+        isRestoringRef.current = false
+      }
+    } catch { /* ignore corrupt session */ }
+  }, [])
+
+  // Open pending files once rootPath is available
+  useEffect(() => {
+    if (!pendingRestore || !project.rootPath) return
+    const { paths, active } = pendingRestore
+    setPendingRestore(null)
+    ;(async () => {
+      for (const p of paths) {
+        await openFile(p).catch(() => null)
+      }
+      if (active) setActiveFilePath(active)
+      isRestoringRef.current = false
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingRestore, project.rootPath])
+
+  // Persist session whenever state changes (skip during restore)
+  useEffect(() => {
+    if (isRestoringRef.current) return
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      rootPath: project.rootPath,
+      openPaths: openFiles.map(f => f.path),
+      active: activeFilePath
+    }))
+  }, [project.rootPath, openFiles, activeFilePath])
 
   const openFolder = useCallback(async () => {
     const folderPath = await window.kode.fs.openFolder()

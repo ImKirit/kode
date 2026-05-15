@@ -14,7 +14,10 @@ const mockKode = {
 Object.defineProperty(window, 'kode', { value: mockKode, writable: true })
 
 describe('useProject', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
 
   it('starts with no project open', () => {
     const { result } = renderHook(() => useProject())

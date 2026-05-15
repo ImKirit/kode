@@ -14,6 +14,14 @@ contextBridge.exposeInMainWorld('kode', {
       ipcRenderer.invoke('fs:writeFile', filePath, content),
     openFolder: (): Promise<string | null> =>
       ipcRenderer.invoke('fs:openFolder'),
+    createFile: (filePath: string): Promise<void> =>
+      ipcRenderer.invoke('fs:createFile', filePath),
+    createDir: (dirPath: string): Promise<void> =>
+      ipcRenderer.invoke('fs:createDir', dirPath),
+    rename: (oldPath: string, newPath: string): Promise<void> =>
+      ipcRenderer.invoke('fs:rename', oldPath, newPath),
+    delete: (itemPath: string): Promise<void> =>
+      ipcRenderer.invoke('fs:delete', itemPath),
     watchRoot: (rootPath: string): Promise<void> =>
       ipcRenderer.invoke('fs:watchRoot', rootPath),
     unwatchRoot: (): void =>
@@ -238,6 +246,7 @@ contextBridge.exposeInMainWorld('kode', {
       ipcRenderer.invoke('shell:openExternal', url)
   },
   setTitle: (title: string): void => ipcRenderer.send('window:setTitle', title),
+  openNewWindow: (): Promise<void> => ipcRenderer.invoke('window:openNew'),
   mcp: {
     listTools: (): Promise<unknown[]> =>
       ipcRenderer.invoke('mcp:listTools'),

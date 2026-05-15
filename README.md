@@ -1,71 +1,68 @@
 # Kode
 
-An open-source, cross-platform, AI-native code editor built with Electron. Think VS Code meets Claude Code — full Monaco editing, first-class AI agent support with MCP, persistent chat history, and a completely customizable panel layout, without any lock-in.
+An AI-native desktop code editor built with Electron, React, and Monaco. Full VS Code editing experience with a deeply integrated AI agent, MCP tool support, persistent chat history, and a clean panel layout.
 
 ---
 
 ## Features
 
-- **Monaco Editor** — same editor engine as VS Code, with syntax highlighting, IntelliSense, and multi-tab support
-- **AI Agent Panel** — stream responses token-by-token from Claude (Anthropic), OpenAI, GitHub Copilot, and Gemini
-- **MCP Support** — auto-loads MCP servers from `.claude/` folders; connect any MCP server manually in Settings
-- **Chat History** — all conversations persisted in SQLite; searchable threads sidebar, rename/archive/delete
-- **Prompt Scheduler** — schedule prompts to run at a specific time, or auto-resume after rate limits
-- **Auto Follow** — watch the AI write to files in real time as it edits them
-- **Git Integration** — status, diff, stage, commit from within the editor (Changes tab in bottom panel)
-- **Integrated Terminal** — real PTY terminal via node-pty + xterm.js, multiple instances
-- **Plugin Marketplace** — extend Kode with npm-based plugins (`kode-plugin` keyword)
-- **Full Theming** — light/dark/custom themes via CSS custom properties, importable/exportable as JSON
-- **Keybindings** — customizable keyboard shortcuts with visual editor and reset
-- **CLAUDE.md badge** — shows when a project has a `.claude/CLAUDE.md` context file loaded
-- **Local-only** — no cloud sync, no telemetry, all data stored in SQLite on your machine
+- **Monaco Editor** — syntax highlighting, IntelliSense, Emmet, bracket pair colorization, format on save
+- **AI Chat** — streaming responses from Claude, OpenAI, or the Kode provider; MCP tools with inline approval UI
+- **MCP Support** — connect any MCP server; auto-loads from `.claude/` project context files
+- **Chat History** — all sessions persisted in SQLite; searchable, renameable, archivable threads
+- **Prompt Scheduler** — schedule prompts at a specific time; auto-resume after rate limits
+- **Auto Follow** — watch file changes stream in as the AI edits them
+- **Git** — stage/unstage, view diffs, commit; optional AI-generated conventional commit messages
+- **Terminal** — real PTY terminal via node-pty + xterm.js, multiple instances, opens at project root
+- **Live Server** — one-click local dev server with hot reload
+- **File tree** — right-click context menu: new file, new folder, inline rename (VS Code-style), delete
+- **Session restore** — reopens your last project and open files on launch
+- **Multi-window** — File > New Window opens a fresh editor instance
+- **Plugin system** — toggleable built-ins (Format on Save, AI Commit Messages); external marketplace coming soon
+- **GitHub integration** — device flow OAuth, repo linking, push/pull
+- **SSH Deploy** — deploy to a remote server over SSH
+- **Theming** — light / dark / custom themes via CSS custom properties; importable/exportable as JSON
+- **Keybindings** — fully customizable keyboard shortcuts
 
 ---
 
-## Tech Stack
+## Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Desktop shell | Electron 35 (electron-vite + electron-forge) |
-| UI | React 18 + TypeScript 5 |
+| Shell | Electron 35 + electron-vite + electron-forge |
+| Renderer | React 18, TypeScript 5, Vite |
 | Editor | Monaco Editor |
 | Terminal | node-pty + xterm.js |
 | AI | @anthropic-ai/sdk, openai, @modelcontextprotocol/sdk |
-| Database | SQLite via better-sqlite3 |
+| DB | SQLite via better-sqlite3 |
 | Styling | CSS custom properties + Tailwind CSS |
 | Icons | Lucide React |
-| Build | Vite (renderer) + esbuild (main) |
-| Tests | Vitest + React Testing Library (383 tests) |
+| Tests | Vitest + React Testing Library |
 
 ---
 
 ## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm 9+
-
-### Install and Run
 
 ```bash
 npm install
 npm run dev
 ```
 
-### Build for Production
+`predev` rebuilds native modules (`better-sqlite3`, `node-pty`) against the Electron ABI automatically.
+
+### Tests
 
 ```bash
-npm run build
-npm run make
+npm test                        # full suite
+npx vitest run tests/renderer   # renderer only, no ABI rebuild needed
 ```
 
-This produces installers in `out/make/` for your platform.
-
-### Test
+### Build
 
 ```bash
-npm test
+npm run build   # compile
+npm run make    # package for current platform → out/make/
 ```
 
 ---
@@ -75,51 +72,26 @@ npm test
 ```
 src/
   main/
-    db/          # SQLite (ChatDB — sessions, messages, file changes)
-    ipc/         # IPC handlers: fs, terminal, ai, settings, git, mcp, chat, plugins
-    mcp/         # McpManager + built-in filesystem/shell servers
-    plugins/     # PluginLoader (npm registry, install/uninstall)
-  preload/       # contextBridge (exposes safe APIs from main to renderer)
+    db/       SQLite (chat sessions, messages, usage stats)
+    ipc/      IPC handlers: fs, terminal, ai, git, mcp, chat, plugins, deploy, auth…
+    mcp/      McpManager
+    plugins/  PluginLoader
+  preload/    contextBridge — exposes window.kode API to renderer
   renderer/
     src/
       components/
-        ai/      # AIChatPanel, ThreadsPanel, ChatMessage, ToolCallBlock, PermissionDialog
-        editor/  # EditorArea, EditorTab, MonacoEditor wrapper
-        filetree/ # FileTree, FileTreeNode
-        layout/  # AppLayout, ActivityBar, MenuBar, BottomPanel
-        plugins/ # PluginBrowser
-        settings/ # SettingsPanel, AppearanceSettings, McpSettings, KeybindingsSettings
-        terminal/ # Terminal
-      hooks/     # useProject, useScheduler, useChatHistory, useSettings, useAutoFollow, ...
-      styles/    # themes.ts, keybindings.ts, globals.css
-      types/     # index.ts, electron.d.ts
-
+        ai/       AIChatPanel, ThreadsPanel, ToolCallBlock, PermissionDialog
+        editor/   EditorArea, EditorTab, MonacoEditor
+        filetree/ FileTree, FileTreeNode
+        git/      GitPanel, ChangesView
+        layout/   AppLayout, ActivityBar, MenuBar, BottomPanel
+        settings/ SettingsPanel + all settings tabs
+      hooks/      useProject, useChatHistory, useSettings, useAutoFollow, useGit…
+      types/      index.ts, electron.d.ts
 tests/
-  main/          # Main-process unit tests (real Node.js)
-  renderer/      # Renderer component and hook tests (jsdom + RTL)
+  main/       Main-process tests (Node.js env)
+  renderer/   Component and hook tests (jsdom + RTL)
 ```
-
----
-
-## Packaging
-
-Place icon files in `resources/` before packaging:
-
-- `resources/icon.png` — 512x512, Linux + fallback
-- `resources/icon.ico` — Windows
-- `resources/icon.icns` — macOS
-
-Then run:
-
-```bash
-npm run make
-```
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 

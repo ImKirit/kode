@@ -101,6 +101,7 @@ export function App() {
           <MenuBar
             projectName={project.name}
             onOpenFolder={openFolder}
+            onNewWindow={() => window.kode.openNewWindow()}
             onSave={() => activeFilePath && saveFile(activeFilePath)}
             onOpenSettings={() => openSettings()}
           />

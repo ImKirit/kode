@@ -6,7 +6,7 @@ import { stopWatcher } from './ipc/watcher'
 
 let mainWindow: BrowserWindow | null = null
 
-function createWindow(): BrowserWindow {
+function createWindow(opts?: { newWindow?: boolean }): BrowserWindow {
   const iconPath = app.isPackaged
     ? join(process.resourcesPath, 'icon.ico')
     : join(__dirname, '../../resources/icon.ico')
@@ -32,9 +32,13 @@ function createWindow(): BrowserWindow {
 
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (devUrl) {
-    win.loadURL(devUrl)
+    win.loadURL(opts?.newWindow ? `${devUrl}?newWindow=1` : devUrl)
   } else {
-    win.loadFile(join(__dirname, '../renderer/index.html'))
+    if (opts?.newWindow) {
+      win.loadFile(join(__dirname, '../renderer/index.html'), { query: { newWindow: '1' } })
+    } else {
+      win.loadFile(join(__dirname, '../renderer/index.html'))
+    }
   }
 
   return win
@@ -47,6 +51,10 @@ app.whenReady().then(() => {
   // Register once — uses mainWindow reference, not captured win
   ipcMain.on('window:setTitle', (_event, title: string) => {
     mainWindow?.setTitle(title)
+  })
+
+  ipcMain.handle('window:openNew', () => {
+    createWindow({ newWindow: true })
   })
 
   createWindow()

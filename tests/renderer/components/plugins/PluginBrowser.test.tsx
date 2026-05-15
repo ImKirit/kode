@@ -6,11 +6,6 @@ const mockUseSettings = vi.hoisted(() => vi.fn())
 
 vi.mock('@renderer/hooks/useSettings', () => ({ useSettings: mockUseSettings }))
 
-const mockList = vi.fn()
-const mockSearch = vi.fn()
-const mockInstall = vi.fn()
-const mockUninstall = vi.fn()
-
 const DEFAULT_EDITOR = {
   fontSize: 13, tabSize: 2, wordWrap: 'off', minimap: true, lineNumbers: 'on',
   formatOnSave: false, stickyScroll: true, autoCloseBrackets: true, showWhitespace: false
@@ -23,25 +18,6 @@ beforeEach(() => {
     settings: { editor: DEFAULT_EDITOR, aiCommitMessages: true },
     updateSettings: mockUpdateSettings
   })
-  Object.defineProperty(window, 'kode', {
-    value: {
-      plugins: {
-        list: mockList,
-        search: mockSearch,
-        install: mockInstall,
-        uninstall: mockUninstall
-      },
-      shell: {
-        openExternal: vi.fn().mockResolvedValue(undefined)
-      }
-    },
-    writable: true,
-    configurable: true
-  })
-  mockList.mockResolvedValue([])
-  mockSearch.mockResolvedValue([])
-  mockInstall.mockResolvedValue(undefined)
-  mockUninstall.mockResolvedValue(undefined)
 })
 
 import { PluginBrowser } from '../../../../src/renderer/src/components/plugins/PluginBrowser'
@@ -52,127 +28,52 @@ describe('PluginBrowser', () => {
     expect(screen.getByText('Extensions')).toBeTruthy()
   })
 
-  it('shows installed plugins on load', async () => {
-    mockList.mockResolvedValue([
-      { id: 'kode-plugin-git', name: 'kode-plugin-git', version: '1.0.0', description: 'Git tools', installed: true }
-    ])
+  it('shows Kode Plugins section', () => {
     render(<PluginBrowser />)
-    await waitFor(() => {
-      expect(screen.getByText('kode-plugin-git')).toBeTruthy()
-    })
+    expect(screen.getByText('Kode Plugins')).toBeTruthy()
   })
 
-  it('shows Uninstall button for installed plugins', async () => {
-    mockList.mockResolvedValue([
-      { id: 'kode-plugin-git', name: 'kode-plugin-git', version: '1.0.0', description: '', installed: true }
-    ])
+  it('shows Format on Save toggle', () => {
     render(<PluginBrowser />)
-    await waitFor(() => {
-      expect(screen.getByText('Uninstall')).toBeTruthy()
-    })
+    expect(screen.getByText('Format on Save')).toBeTruthy()
   })
 
-  it('calls uninstall and refreshes on Uninstall click', async () => {
-    mockList.mockResolvedValue([
-      { id: 'kode-plugin-git', name: 'kode-plugin-git', version: '1.0.0', description: '', installed: true }
-    ])
+  it('shows AI Commit Messages toggle', () => {
     render(<PluginBrowser />)
-    await waitFor(() => screen.getByText('Uninstall'))
-    fireEvent.click(screen.getByText('Uninstall'))
-    await waitFor(() => {
-      expect(mockUninstall).toHaveBeenCalledWith('kode-plugin-git')
-      expect(mockList).toHaveBeenCalledTimes(2) // initial + after uninstall
-    })
+    expect(screen.getByText('AI Commit Messages')).toBeTruthy()
   })
 
-  it('shows empty state message when no plugins installed', async () => {
-    mockList.mockResolvedValue([])
+  it('shows External Plugins coming soon section', () => {
     render(<PluginBrowser />)
-    await waitFor(() => {
-      expect(screen.getByText(/No npm plugins installed/i)).toBeTruthy()
-    })
+    expect(screen.getByText('External Plugins')).toBeTruthy()
+    expect(screen.getByText('Coming soon')).toBeTruthy()
   })
 
-  it('has a search input', () => {
+  it('calls updateSettings with toggled formatOnSave when Format on Save toggle is clicked', () => {
     render(<PluginBrowser />)
-    expect(screen.getByPlaceholderText(/Search marketplace/i)).toBeTruthy()
-  })
-
-  it('calls search when input changes', async () => {
-    mockSearch.mockResolvedValue([])
-    render(<PluginBrowser />)
-    const input = screen.getByPlaceholderText(/Search marketplace/i)
-    fireEvent.change(input, { target: { value: 'git' } })
-    await waitFor(() => {
-      expect(mockSearch).toHaveBeenCalledWith('git')
-    })
-  })
-
-  it('shows search results with Install button', async () => {
-    mockSearch.mockResolvedValue([
-      { id: 'kode-plugin-eslint', name: 'kode-plugin-eslint', description: 'ESLint', version: '2.0.0' }
-    ])
-    render(<PluginBrowser />)
-    const input = screen.getByPlaceholderText(/Search marketplace/i)
-    fireEvent.change(input, { target: { value: 'eslint' } })
-    await waitFor(() => {
-      expect(screen.getByText('kode-plugin-eslint')).toBeTruthy()
-      expect(screen.getByText('Install')).toBeTruthy()
-    })
-  })
-
-  it('calls install and refreshes on Install click', async () => {
-    mockSearch.mockResolvedValue([
-      { id: 'kode-plugin-eslint', name: 'kode-plugin-eslint', description: 'ESLint', version: '2.0.0' }
-    ])
-    render(<PluginBrowser />)
-    fireEvent.change(screen.getByPlaceholderText(/Search marketplace/i), { target: { value: 'eslint' } })
-    await waitFor(() => screen.getByText('Install'))
-    fireEvent.click(screen.getByText('Install'))
-    await waitFor(() => {
-      expect(mockInstall).toHaveBeenCalledWith('kode-plugin-eslint')
-      expect(mockList).toHaveBeenCalledTimes(2) // initial + after install
-    })
-  })
-
-  it('shows loading state during install', async () => {
-    let resolve: () => void
-    mockInstall.mockReturnValue(new Promise<void>(r => { resolve = r }))
-    mockSearch.mockResolvedValue([
-      { id: 'kode-plugin-x', name: 'kode-plugin-x', description: '', version: '1.0.0' }
-    ])
-    render(<PluginBrowser />)
-    fireEvent.change(screen.getByPlaceholderText(/Search marketplace/i), { target: { value: 'x' } })
-    await waitFor(() => screen.getByText('Install'))
-    fireEvent.click(screen.getByText('Install'))
-    await waitFor(() => {
-      expect(screen.queryByText('Installing...')).toBeTruthy()
-    })
-    resolve!()
-  })
-
-  it('shows Built-in section with Format on Save toggle', async () => {
-    render(<PluginBrowser />)
-    await waitFor(() => {
-      expect(screen.getByText('Format on Save')).toBeTruthy()
-    })
-  })
-
-  it('shows Recommended section', async () => {
-    render(<PluginBrowser />)
-    await waitFor(() => {
-      expect(screen.getByText('Recommended')).toBeTruthy()
-      expect(screen.getByText('Prettier – Code formatter')).toBeTruthy()
-    })
-  })
-
-  it('calls updateSettings when a built-in toggle is clicked', async () => {
-    render(<PluginBrowser />)
-    await waitFor(() => screen.getByText('Format on Save'))
-    const toggle = screen.getAllByRole('switch')[0]
-    fireEvent.click(toggle)
+    const toggles = screen.getAllByRole('switch')
+    fireEvent.click(toggles[0])
     expect(mockUpdateSettings).toHaveBeenCalledWith(
       expect.objectContaining({ editor: expect.objectContaining({ formatOnSave: true }) })
     )
+  })
+
+  it('calls updateSettings with toggled aiCommitMessages when AI Commit Messages toggle is clicked', () => {
+    render(<PluginBrowser />)
+    const toggles = screen.getAllByRole('switch')
+    fireEvent.click(toggles[1])
+    expect(mockUpdateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ aiCommitMessages: false })
+    )
+  })
+
+  it('reflects enabled state from settings for Format on Save', () => {
+    mockUseSettings.mockReturnValue({
+      settings: { editor: { ...DEFAULT_EDITOR, formatOnSave: true }, aiCommitMessages: true },
+      updateSettings: mockUpdateSettings
+    })
+    render(<PluginBrowser />)
+    const toggles = screen.getAllByRole('switch')
+    expect(toggles[0].getAttribute('aria-checked')).toBe('true')
   })
 })

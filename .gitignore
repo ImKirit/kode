@@ -5,10 +5,17 @@ out/
 .env.*
 *.log
 
+# Build artifacts
+tsconfig.*.tsbuildinfo
+out-test/
+
 # AI tooling — not for version control
 .claude/
 .superpowers/
 CLAUDE.md
+docs/superpowers/
+Refference/
+resources/
 
 # OS
 .DS_Store
