@@ -1,14 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { PluginBrowser } from '../../../../src/renderer/src/components/plugins/PluginBrowser'
+
+const mockSetEditorConfig = vi.hoisted(() => vi.fn())
+const mockUseSettings = vi.hoisted(() => vi.fn())
+
+vi.mock('@renderer/hooks/useSettings', () => ({ useSettings: mockUseSettings }))
 
 const mockList = vi.fn()
 const mockSearch = vi.fn()
 const mockInstall = vi.fn()
 const mockUninstall = vi.fn()
 
+const DEFAULT_EDITOR = {
+  fontSize: 13, tabSize: 2, wordWrap: 'off', minimap: true, lineNumbers: 'on',
+  formatOnSave: false, autoSave: false, bracketPairColorization: true, smoothScrolling: true
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
+  mockUseSettings.mockReturnValue({
+    settings: { editor: DEFAULT_EDITOR },
+    setEditorConfig: mockSetEditorConfig
+  })
   Object.defineProperty(window, 'kode', {
     value: {
       plugins: {
@@ -17,11 +30,8 @@ beforeEach(() => {
         install: mockInstall,
         uninstall: mockUninstall
       },
-      liveServer: {
-        status: vi.fn().mockResolvedValue({ running: false }),
-        start: vi.fn().mockResolvedValue({ ok: true, port: 5500 }),
-        stop: vi.fn().mockResolvedValue(undefined),
-        onReload: vi.fn().mockReturnValue(() => {})
+      shell: {
+        openExternal: vi.fn().mockResolvedValue(undefined)
       }
     },
     writable: true,
@@ -32,6 +42,8 @@ beforeEach(() => {
   mockInstall.mockResolvedValue(undefined)
   mockUninstall.mockResolvedValue(undefined)
 })
+
+import { PluginBrowser } from '../../../../src/renderer/src/components/plugins/PluginBrowser'
 
 describe('PluginBrowser', () => {
   it('renders the panel title', () => {
@@ -132,10 +144,34 @@ describe('PluginBrowser', () => {
     fireEvent.change(screen.getByPlaceholderText(/Search marketplace/i), { target: { value: 'x' } })
     await waitFor(() => screen.getByText('Install'))
     fireEvent.click(screen.getByText('Install'))
-    // Button should show loading state
     await waitFor(() => {
       expect(screen.queryByText('Installing...')).toBeTruthy()
     })
     resolve!()
+  })
+
+  it('shows Built-in section with Format on Save toggle', async () => {
+    render(<PluginBrowser />)
+    await waitFor(() => {
+      expect(screen.getByText('Format on Save')).toBeTruthy()
+    })
+  })
+
+  it('shows Recommended section', async () => {
+    render(<PluginBrowser />)
+    await waitFor(() => {
+      expect(screen.getByText('Recommended')).toBeTruthy()
+      expect(screen.getByText('Prettier – Code formatter')).toBeTruthy()
+    })
+  })
+
+  it('calls setEditorConfig when a built-in toggle is clicked', async () => {
+    render(<PluginBrowser />)
+    await waitFor(() => screen.getByText('Format on Save'))
+    const toggle = screen.getAllByRole('switch')[0]
+    fireEvent.click(toggle)
+    expect(mockSetEditorConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ formatOnSave: true })
+    )
   })
 })

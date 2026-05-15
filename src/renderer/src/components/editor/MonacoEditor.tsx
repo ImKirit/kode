@@ -20,6 +20,15 @@ export function MonacoEditor({ content, language, onChange, onSave, isActive, mo
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
   const cfg = editorConfig ?? DEFAULT_EDITOR_CONFIG
 
+  // Refs so closures inside handleMount always read the latest values
+  const cfgRef = useRef(cfg)
+  useEffect(() => { cfgRef.current = cfg }, [cfg])
+
+  const onSaveRef = useRef(onSave)
+  useEffect(() => { onSaveRef.current = onSave }, [onSave])
+
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   useEffect(() => {
     if (isActive && editorRef.current) {
       editorRef.current.layout()
@@ -28,7 +37,12 @@ export function MonacoEditor({ content, language, onChange, onSave, isActive, mo
 
   function handleMount(ed: editor.IStandaloneCodeEditor, monaco: Monaco) {
     editorRef.current = ed
-    ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => onSave())
+    ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, async () => {
+      if (cfgRef.current.formatOnSave) {
+        await ed.getAction('editor.action.formatDocument')?.run()
+      }
+      onSaveRef.current()
+    })
     emmetHTML(monaco, ['html', 'handlebars', 'razor', 'erb'])
     emmetCSS(monaco, ['css', 'scss', 'less', 'sass'])
   }
@@ -52,9 +66,9 @@ export function MonacoEditor({ content, language, onChange, onSave, isActive, mo
         scrollBeyondLastLine: false,
         renderWhitespace: 'selection',
         renderLineHighlight: 'gutter',
-        bracketPairColorization: { enabled: true },
-        guides: { bracketPairs: true },
-        smoothScrolling: true,
+        bracketPairColorization: { enabled: cfg.bracketPairColorization ?? true },
+        guides: { bracketPairs: cfg.bracketPairColorization ?? true },
+        smoothScrolling: cfg.smoothScrolling ?? true,
         cursorBlinking: 'smooth',
         cursorSmoothCaretAnimation: 'on',
         overviewRulerBorder: false,
@@ -64,7 +78,13 @@ export function MonacoEditor({ content, language, onChange, onSave, isActive, mo
         inlineSuggest: { enabled: true },
         suggest: { preview: true }
       }}
-      onChange={v => onChange(v ?? '')}
+      onChange={v => {
+        onChange(v ?? '')
+        if (cfgRef.current.autoSave) {
+          if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+          autoSaveTimer.current = setTimeout(() => onSaveRef.current(), 1000)
+        }
+      }}
       onMount={handleMount}
     />
   )

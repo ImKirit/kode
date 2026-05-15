@@ -217,6 +217,9 @@ declare global {
         list(): Promise<Array<{ id: string; prompt: string; triggerAt: number }>>
         onFire(cb: (prompt: string) => void): () => void
       }
+      shell: {
+        openExternal(url: string): Promise<void>
+      }
       setTitle(title: string): void
       mcp: {
         listTools(): Promise<McpTool[]>

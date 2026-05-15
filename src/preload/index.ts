@@ -233,6 +233,10 @@ contextBridge.exposeInMainWorld('kode', {
     getToken: (): Promise<string | null> =>
       ipcRenderer.invoke('auth:getToken'),
   },
+  shell: {
+    openExternal: (url: string): Promise<void> =>
+      ipcRenderer.invoke('shell:openExternal', url)
+  },
   setTitle: (title: string): void => ipcRenderer.send('window:setTitle', title),
   mcp: {
     listTools: (): Promise<unknown[]> =>

@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, shell } from 'electron'
 import {
   readDirHandler,
   readFileHandler,
@@ -24,6 +24,7 @@ import { registerSchedulerHandlers } from './scheduler'
 import { mcpManager } from '../mcp/McpManager'
 
 export function registerIpcHandlers(): void {
+  ipcMain.handle('shell:openExternal', (_event, url: string) => shell.openExternal(url))
   ipcMain.handle('fs:readDir', (_event, dirPath: string) => readDirHandler(dirPath))
   ipcMain.handle('fs:readFile', (_event, filePath: string) => readFileHandler(filePath))
   ipcMain.handle('fs:writeFile', (_event, filePath: string, content: string) =>

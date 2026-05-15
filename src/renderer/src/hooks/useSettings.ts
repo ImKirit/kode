@@ -13,6 +13,10 @@ export interface EditorConfig {
   wordWrap: 'on' | 'off'
   minimap: boolean
   lineNumbers: 'on' | 'off' | 'relative'
+  formatOnSave?: boolean
+  autoSave?: boolean
+  bracketPairColorization?: boolean
+  smoothScrolling?: boolean
 }
 
 export const DEFAULT_EDITOR_CONFIG: EditorConfig = {
@@ -20,7 +24,11 @@ export const DEFAULT_EDITOR_CONFIG: EditorConfig = {
   tabSize: 2,
   wordWrap: 'off',
   minimap: true,
-  lineNumbers: 'on'
+  lineNumbers: 'on',
+  formatOnSave: false,
+  autoSave: false,
+  bracketPairColorization: true,
+  smoothScrolling: true
 }
 
 export type ProviderId = 'anthropic' | 'openai' | 'kode' | 'copilot'
